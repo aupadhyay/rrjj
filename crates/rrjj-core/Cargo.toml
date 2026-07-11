@@ -1,0 +1,28 @@
+[package]
+name = "rrjj-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Filesystem capture coordinator for rrjj"
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+futures.workspace = true
+globset.workspace = true
+jj-lib.workspace = true
+notify.workspace = true
+rrjj-schema = { path = "../rrjj-schema" }
+rrjj-sinks = { path = "../rrjj-sinks" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true
+rrjj-reader = { path = "../rrjj-reader" }
+tempfile.workspace = true

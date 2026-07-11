@@ -1,0 +1,26 @@
+# Rust build output (including nested benchmark crates)
+target/
+
+# Python bytecode, test caches, and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local daemon/runtime state
+*.sock
+*.log
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system metadata
+.DS_Store
+.idea/
+.vscode/
+
+# Historical local design notes; README.md is the public source of truth
+/PLAN.md

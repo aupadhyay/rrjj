@@ -1,0 +1,75 @@
+{
+  "host": {
+    "machine": "arm64",
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "python": "3.11.15"
+  },
+  "incremental_overhead_percent": 33.879327793630885,
+  "incremental_overhead_seconds": 0.14441700099268928,
+  "recording_off": {
+    "baseline": {
+      "file_bytes": 64,
+      "files_created": 1000,
+      "phase": "setup",
+      "seconds": 0.05637183296494186,
+      "working_set": 1000
+    },
+    "baseline_setup_seconds": 0.07578754203859717,
+    "workload": {
+      "burst_pause_ms": 0.0,
+      "burst_size": 10000,
+      "file_bytes": 64,
+      "logical_mutations": 10000,
+      "phase": "mutate",
+      "pid": 41223,
+      "seconds": 0.40665466600330546,
+      "working_set": 1000
+    },
+    "workload_seconds": 0.42626879102317616
+  },
+  "recording_on": {
+    "baseline": {
+      "file_bytes": 64,
+      "files_created": 1000,
+      "phase": "setup",
+      "seconds": 0.05472070799442008,
+      "working_set": 1000
+    },
+    "baseline_setup_seconds": 0.07403424999210984,
+    "cold_session_open_and_index_seconds": 0.010473417001776397,
+    "distinct_touched_paths": 1000,
+    "events": 4,
+    "flush_time_to_durable_seconds": 11.960052208974957,
+    "materialization_seconds": 0.26351879199501127,
+    "materialized_files": 1000,
+    "observed_touch_operations": [
+      "modify"
+    ],
+    "overflow_events": 0,
+    "raw_watcher_events": 20765,
+    "recorder_baseline_seconds": 0.9043341250508092,
+    "snapshot_count": 1,
+    "touched_path_windows": 1,
+    "warm_index_op_to_tree_lookup_ns": 13.7175,
+    "warm_lookup_iterations": 100000,
+    "workload": {
+      "burst_pause_ms": 0.0,
+      "burst_size": 10000,
+      "file_bytes": 64,
+      "logical_mutations": 10000,
+      "phase": "mutate",
+      "pid": 41238,
+      "seconds": 0.548754875024315,
+      "working_set": 1000
+    },
+    "workload_seconds": 0.5706857920158654
+  },
+  "schema": 1,
+  "semantics": {
+    "baseline_excluded_from_overhead": true,
+    "mutation_count": "workload-reported logical filesystem operations",
+    "snapshots": "jj checkpoints, not every intermediate byte version",
+    "touched_paths": "aggregated watcher audit context, not ground truth"
+  },
+  "workload": "synthetic"
+}

@@ -1,0 +1,1649 @@
+{
+  "benchmark": "rrjj_event_latency",
+  "config": {
+    "binary": "rrjj",
+    "burst_size": 4,
+    "continuous_duration_seconds": 0.6,
+    "continuous_interval_ms": 25.0,
+    "http_address": "127.0.0.1:56361",
+    "iterations": 2,
+    "max_delay_ms": 250,
+    "quiescence_ms": 50,
+    "session_id": "latency-4d448394-8a3e-46a7-993f-ce8451b73537",
+    "timeout_seconds": 15.0
+  },
+  "failures": [],
+  "host": {
+    "clock_info": {
+      "monotonic": {
+        "adjustable": false,
+        "implementation": "mach_absolute_time()",
+        "monotonic": true,
+        "resolution": 4.166666666666667e-08
+      },
+      "wall": {
+        "adjustable": true,
+        "implementation": "clock_gettime(CLOCK_REALTIME)",
+        "monotonic": false,
+        "resolution": 1.0000000000000002e-06
+      }
+    },
+    "machine": "arm64",
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "python": "3.11.15"
+  },
+  "readiness": {
+    "last_op": "op:4d12bf244dec13948cf02a965d819cd9f6e11133ab74eb7b96942175f13773f02f540df213a4d86089ed82892468183ff2b97dca2114e315e65babe09ba3e1e7",
+    "paused": false,
+    "pending_snapshot": false,
+    "seq": 1,
+    "session_id": "latency-4d448394-8a3e-46a7-993f-ce8451b73537",
+    "snapshots": 0
+  },
+  "samples": [
+    {
+      "edit": {
+        "completion_monotonic_ns": 432134996364041,
+        "completion_wall_unix_ns": 1783722238797971000,
+        "operation_duration_ms": 0.141083,
+        "start_monotonic_ns": 432134996222958,
+        "start_wall_unix_ns": 1783722238797830000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:58.896Z",
+          "seq": 2,
+          "sse_receipt_monotonic_ns": 432135106362916,
+          "sse_receipt_wall_unix_ns": 1783722238907970000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:58.853Z",
+          "seq": 1,
+          "sse_receipt_monotonic_ns": 432135064316541,
+          "sse_receipt_wall_unix_ns": 1783722238865924000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:58.802Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 51.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 109.998875,
+        "edit_completion_to_touched_receipt_monotonic": 67.9525,
+        "edit_start_to_snapshot_receipt_monotonic": 110.139958,
+        "snapshot_creation_to_receipt_wall_estimate": 11.97,
+        "touched_receipt_to_snapshot_receipt_monotonic": 42.046375,
+        "touched_sse_delivery_wall_estimate": 12.924,
+        "watcher_detection_wall_estimate": 4.17
+      },
+      "mode": "isolated",
+      "path": "isolated/0000-b54f53bd-790e-49e3-8199-bbbf83b3e6d1.txt",
+      "sample_id": "0000-b54f53bd-790e-49e3-8199-bbbf83b3e6d1",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135106758791,
+        "completion_wall_unix_ns": 1783722238908366000,
+        "operation_duration_ms": 0.248333,
+        "start_monotonic_ns": 432135106510458,
+        "start_wall_unix_ns": 1783722238908117000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.014Z",
+          "seq": 4,
+          "sse_receipt_monotonic_ns": 432135224860041,
+          "sse_receipt_wall_unix_ns": 1783722239026468000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:58.971Z",
+          "seq": 3,
+          "sse_receipt_monotonic_ns": 432135181936833,
+          "sse_receipt_wall_unix_ns": 1783722238983544000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:58.919Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 118.10125,
+        "edit_completion_to_touched_receipt_monotonic": 75.178042,
+        "edit_start_to_snapshot_receipt_monotonic": 118.349583,
+        "snapshot_creation_to_receipt_wall_estimate": 12.468,
+        "touched_receipt_to_snapshot_receipt_monotonic": 42.923208,
+        "touched_sse_delivery_wall_estimate": 12.544,
+        "watcher_detection_wall_estimate": 10.883
+      },
+      "mode": "isolated",
+      "path": "isolated/0001-2dd4626f-f669-4c3f-894c-65fee64b9170.txt",
+      "sample_id": "0001-2dd4626f-f669-4c3f-894c-65fee64b9170",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135225380375,
+        "completion_wall_unix_ns": 1783722239026988000,
+        "operation_duration_ms": 0.324459,
+        "start_monotonic_ns": 432135225055916,
+        "start_wall_unix_ns": 1783722239026663000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.133Z",
+          "seq": 6,
+          "sse_receipt_monotonic_ns": 432135343487375,
+          "sse_receipt_wall_unix_ns": 1783722239145095000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.089Z",
+          "seq": 5,
+          "sse_receipt_monotonic_ns": 432135299411208,
+          "sse_receipt_wall_unix_ns": 1783722239101019000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.037Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 118.107,
+        "edit_completion_to_touched_receipt_monotonic": 74.030833,
+        "edit_start_to_snapshot_receipt_monotonic": 118.431459,
+        "snapshot_creation_to_receipt_wall_estimate": 12.095,
+        "touched_receipt_to_snapshot_receipt_monotonic": 44.076167,
+        "touched_sse_delivery_wall_estimate": 12.019,
+        "watcher_detection_wall_estimate": 10.337
+      },
+      "mode": "burst",
+      "path": "burst/0000-0000-2c7c8e1e-c348-4792-ae11-5cd4256c82fb.txt",
+      "sample_id": "0000-0000-2c7c8e1e-c348-4792-ae11-5cd4256c82fb",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135225483500,
+        "completion_wall_unix_ns": 1783722239027091000,
+        "operation_duration_ms": 0.07425,
+        "start_monotonic_ns": 432135225409250,
+        "start_wall_unix_ns": 1783722239027016000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.133Z",
+          "seq": 6,
+          "sse_receipt_monotonic_ns": 432135343487375,
+          "sse_receipt_wall_unix_ns": 1783722239145095000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.089Z",
+          "seq": 5,
+          "sse_receipt_monotonic_ns": 432135299411208,
+          "sse_receipt_wall_unix_ns": 1783722239101019000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.037Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 118.003875,
+        "edit_completion_to_touched_receipt_monotonic": 73.927708,
+        "edit_start_to_snapshot_receipt_monotonic": 118.078125,
+        "snapshot_creation_to_receipt_wall_estimate": 12.095,
+        "touched_receipt_to_snapshot_receipt_monotonic": 44.076167,
+        "touched_sse_delivery_wall_estimate": 12.019
+      },
+      "mode": "burst",
+      "path": "burst/0000-0001-4546761d-c592-4735-bb9f-00c410a719b6.txt",
+      "sample_id": "0000-0001-4546761d-c592-4735-bb9f-00c410a719b6",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135225561000,
+        "completion_wall_unix_ns": 1783722239027168000,
+        "operation_duration_ms": 0.061042,
+        "start_monotonic_ns": 432135225499958,
+        "start_wall_unix_ns": 1783722239027107000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.133Z",
+          "seq": 6,
+          "sse_receipt_monotonic_ns": 432135343487375,
+          "sse_receipt_wall_unix_ns": 1783722239145095000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.089Z",
+          "seq": 5,
+          "sse_receipt_monotonic_ns": 432135299411208,
+          "sse_receipt_wall_unix_ns": 1783722239101019000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.037Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 117.926375,
+        "edit_completion_to_touched_receipt_monotonic": 73.850208,
+        "edit_start_to_snapshot_receipt_monotonic": 117.987417,
+        "snapshot_creation_to_receipt_wall_estimate": 12.095,
+        "touched_receipt_to_snapshot_receipt_monotonic": 44.076167,
+        "touched_sse_delivery_wall_estimate": 12.019
+      },
+      "mode": "burst",
+      "path": "burst/0000-0002-92968839-b516-40f7-963a-795e824c5cd8.txt",
+      "sample_id": "0000-0002-92968839-b516-40f7-963a-795e824c5cd8",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135225636041,
+        "completion_wall_unix_ns": 1783722239027243000,
+        "operation_duration_ms": 0.0605,
+        "start_monotonic_ns": 432135225575541,
+        "start_wall_unix_ns": 1783722239027183000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.133Z",
+          "seq": 6,
+          "sse_receipt_monotonic_ns": 432135343487375,
+          "sse_receipt_wall_unix_ns": 1783722239145095000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.089Z",
+          "seq": 5,
+          "sse_receipt_monotonic_ns": 432135299411208,
+          "sse_receipt_wall_unix_ns": 1783722239101019000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.037Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 117.851334,
+        "edit_completion_to_touched_receipt_monotonic": 73.775167,
+        "edit_start_to_snapshot_receipt_monotonic": 117.911834,
+        "snapshot_creation_to_receipt_wall_estimate": 12.095,
+        "touched_receipt_to_snapshot_receipt_monotonic": 44.076167,
+        "touched_sse_delivery_wall_estimate": 12.019
+      },
+      "mode": "burst",
+      "path": "burst/0000-0003-9e4a9348-981f-4e92-b051-de2fd3dba1e4.txt",
+      "sample_id": "0000-0003-9e4a9348-981f-4e92-b051-de2fd3dba1e4",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135343983666,
+        "completion_wall_unix_ns": 1783722239145591000,
+        "operation_duration_ms": 0.221958,
+        "start_monotonic_ns": 432135343761708,
+        "start_wall_unix_ns": 1783722239145369000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.253Z",
+          "seq": 8,
+          "sse_receipt_monotonic_ns": 432135465892625,
+          "sse_receipt_wall_unix_ns": 1783722239267501000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.208Z",
+          "seq": 7,
+          "sse_receipt_monotonic_ns": 432135420429083,
+          "sse_receipt_wall_unix_ns": 1783722239222038000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.156Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 121.908959,
+        "edit_completion_to_touched_receipt_monotonic": 76.445417,
+        "edit_start_to_snapshot_receipt_monotonic": 122.130917,
+        "snapshot_creation_to_receipt_wall_estimate": 14.501,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.463542,
+        "touched_sse_delivery_wall_estimate": 14.038,
+        "watcher_detection_wall_estimate": 10.631
+      },
+      "mode": "burst",
+      "path": "burst/0001-0000-e92110d4-f371-4578-baa3-8651b8ed5152.txt",
+      "sample_id": "0001-0000-e92110d4-f371-4578-baa3-8651b8ed5152",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135344086833,
+        "completion_wall_unix_ns": 1783722239145694000,
+        "operation_duration_ms": 0.0765,
+        "start_monotonic_ns": 432135344010333,
+        "start_wall_unix_ns": 1783722239145618000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.253Z",
+          "seq": 8,
+          "sse_receipt_monotonic_ns": 432135465892625,
+          "sse_receipt_wall_unix_ns": 1783722239267501000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.208Z",
+          "seq": 7,
+          "sse_receipt_monotonic_ns": 432135420429083,
+          "sse_receipt_wall_unix_ns": 1783722239222038000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.156Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 121.805792,
+        "edit_completion_to_touched_receipt_monotonic": 76.34225,
+        "edit_start_to_snapshot_receipt_monotonic": 121.882292,
+        "snapshot_creation_to_receipt_wall_estimate": 14.501,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.463542,
+        "touched_sse_delivery_wall_estimate": 14.038
+      },
+      "mode": "burst",
+      "path": "burst/0001-0001-116e19d9-6fb5-4213-973a-d3d780df255e.txt",
+      "sample_id": "0001-0001-116e19d9-6fb5-4213-973a-d3d780df255e",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135344169375,
+        "completion_wall_unix_ns": 1783722239145777000,
+        "operation_duration_ms": 0.064625,
+        "start_monotonic_ns": 432135344104750,
+        "start_wall_unix_ns": 1783722239145712000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.253Z",
+          "seq": 8,
+          "sse_receipt_monotonic_ns": 432135465892625,
+          "sse_receipt_wall_unix_ns": 1783722239267501000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.208Z",
+          "seq": 7,
+          "sse_receipt_monotonic_ns": 432135420429083,
+          "sse_receipt_wall_unix_ns": 1783722239222038000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.156Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 121.72325,
+        "edit_completion_to_touched_receipt_monotonic": 76.259708,
+        "edit_start_to_snapshot_receipt_monotonic": 121.787875,
+        "snapshot_creation_to_receipt_wall_estimate": 14.501,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.463542,
+        "touched_sse_delivery_wall_estimate": 14.038
+      },
+      "mode": "burst",
+      "path": "burst/0001-0002-96beeae8-1c9f-4dfe-8b82-dcb399226aae.txt",
+      "sample_id": "0001-0002-96beeae8-1c9f-4dfe-8b82-dcb399226aae",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135344244208,
+        "completion_wall_unix_ns": 1783722239145852000,
+        "operation_duration_ms": 0.061792,
+        "start_monotonic_ns": 432135344182416,
+        "start_wall_unix_ns": 1783722239145790000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.253Z",
+          "seq": 8,
+          "sse_receipt_monotonic_ns": 432135465892625,
+          "sse_receipt_wall_unix_ns": 1783722239267501000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.208Z",
+          "seq": 7,
+          "sse_receipt_monotonic_ns": 432135420429083,
+          "sse_receipt_wall_unix_ns": 1783722239222038000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.156Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 52.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 121.648417,
+        "edit_completion_to_touched_receipt_monotonic": 76.184875,
+        "edit_start_to_snapshot_receipt_monotonic": 121.710209,
+        "snapshot_creation_to_receipt_wall_estimate": 14.501,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.463542,
+        "touched_sse_delivery_wall_estimate": 14.038
+      },
+      "mode": "burst",
+      "path": "burst/0001-0003-43ce2c83-8255-42dc-9b2a-b3a813672bc2.txt",
+      "sample_id": "0001-0003-43ce2c83-8255-42dc-9b2a-b3a813672bc2",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135466379708,
+        "completion_wall_unix_ns": 1783722239267988000,
+        "operation_duration_ms": 0.256875,
+        "start_monotonic_ns": 432135466122833,
+        "start_wall_unix_ns": 1783722239267731000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 316.334667,
+        "edit_completion_to_touched_receipt_monotonic": 271.319708,
+        "edit_start_to_snapshot_receipt_monotonic": 316.591542,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308,
+        "watcher_detection_wall_estimate": 6.269
+      },
+      "mode": "continuous",
+      "path": "continuous/000000-fcf3c3c0-f5f1-4f7e-a5ad-9f33b19e1260.txt",
+      "sample_id": "000000-fcf3c3c0-f5f1-4f7e-a5ad-9f33b19e1260",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135493495916,
+        "completion_wall_unix_ns": 1783722239295104000,
+        "operation_duration_ms": 0.398958,
+        "start_monotonic_ns": 432135493096958,
+        "start_wall_unix_ns": 1783722239294705000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 289.218459,
+        "edit_completion_to_touched_receipt_monotonic": 244.2035,
+        "edit_start_to_snapshot_receipt_monotonic": 289.617417,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000001-a8b91579-ae08-454b-a432-0a16133c7b9d.txt",
+      "sample_id": "000001-a8b91579-ae08-454b-a432-0a16133c7b9d",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135517986666,
+        "completion_wall_unix_ns": 1783722239319595000,
+        "operation_duration_ms": 0.321333,
+        "start_monotonic_ns": 432135517665333,
+        "start_wall_unix_ns": 1783722239319273000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 264.727709,
+        "edit_completion_to_touched_receipt_monotonic": 219.71275,
+        "edit_start_to_snapshot_receipt_monotonic": 265.049042,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000002-8f079580-21da-42e5-9844-9bfb0459af88.txt",
+      "sample_id": "000002-8f079580-21da-42e5-9844-9bfb0459af88",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135545120416,
+        "completion_wall_unix_ns": 1783722239346728000,
+        "operation_duration_ms": 0.194375,
+        "start_monotonic_ns": 432135544926041,
+        "start_wall_unix_ns": 1783722239346534000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 237.593959,
+        "edit_completion_to_touched_receipt_monotonic": 192.579,
+        "edit_start_to_snapshot_receipt_monotonic": 237.788334,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000003-cb7dd32c-3a9f-467c-9382-cbe1bd5c54f2.txt",
+      "sample_id": "000003-cb7dd32c-3a9f-467c-9382-cbe1bd5c54f2",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135571261708,
+        "completion_wall_unix_ns": 1783722239372870000,
+        "operation_duration_ms": 0.165583,
+        "start_monotonic_ns": 432135571096125,
+        "start_wall_unix_ns": 1783722239372704000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 211.452667,
+        "edit_completion_to_touched_receipt_monotonic": 166.437708,
+        "edit_start_to_snapshot_receipt_monotonic": 211.61825,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000004-d08678a5-bd6f-417d-a4e9-0c9dc4512b1b.txt",
+      "sample_id": "000004-d08678a5-bd6f-417d-a4e9-0c9dc4512b1b",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135597365041,
+        "completion_wall_unix_ns": 1783722239398974000,
+        "operation_duration_ms": 0.516416,
+        "start_monotonic_ns": 432135596848625,
+        "start_wall_unix_ns": 1783722239398457000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 185.349334,
+        "edit_completion_to_touched_receipt_monotonic": 140.334375,
+        "edit_start_to_snapshot_receipt_monotonic": 185.86575,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000005-2e7a9842-6bce-4a30-b651-beb7d6d4b472.txt",
+      "sample_id": "000005-2e7a9842-6bce-4a30-b651-beb7d6d4b472",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135619854291,
+        "completion_wall_unix_ns": 1783722239421463000,
+        "operation_duration_ms": 1.73,
+        "start_monotonic_ns": 432135618124291,
+        "start_wall_unix_ns": 1783722239419733000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 162.860084,
+        "edit_completion_to_touched_receipt_monotonic": 117.845125,
+        "edit_start_to_snapshot_receipt_monotonic": 164.590084,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000006-7fad03e8-bee5-4f64-9ed7-92460abf33d9.txt",
+      "sample_id": "000006-7fad03e8-bee5-4f64-9ed7-92460abf33d9",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135645115916,
+        "completion_wall_unix_ns": 1783722239446725000,
+        "operation_duration_ms": 0.411625,
+        "start_monotonic_ns": 432135644704291,
+        "start_wall_unix_ns": 1783722239446320000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 137.598459,
+        "edit_completion_to_touched_receipt_monotonic": 92.5835,
+        "edit_start_to_snapshot_receipt_monotonic": 138.010084,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000007-4db5bfe4-115c-4815-b14e-76fc3a6b38b9.txt",
+      "sample_id": "000007-4db5bfe4-115c-4815-b14e-76fc3a6b38b9",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135670139541,
+        "completion_wall_unix_ns": 1783722239471748000,
+        "operation_duration_ms": 0.369083,
+        "start_monotonic_ns": 432135669770458,
+        "start_wall_unix_ns": 1783722239471379000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 112.574834,
+        "edit_completion_to_touched_receipt_monotonic": 67.559875,
+        "edit_start_to_snapshot_receipt_monotonic": 112.943917,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000008-87070768-2f3f-42b1-a85e-056564c5e0fc.txt",
+      "sample_id": "000008-87070768-2f3f-42b1-a85e-056564c5e0fc",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135695028916,
+        "completion_wall_unix_ns": 1783722239496638000,
+        "operation_duration_ms": 0.445,
+        "start_monotonic_ns": 432135694583916,
+        "start_wall_unix_ns": 1783722239496193000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.572Z",
+          "seq": 10,
+          "sse_receipt_monotonic_ns": 432135782714375,
+          "sse_receipt_wall_unix_ns": 1783722239584323000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.527Z",
+          "seq": 9,
+          "sse_receipt_monotonic_ns": 432135737699416,
+          "sse_receipt_wall_unix_ns": 1783722239539308000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.274Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 253.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 87.685459,
+        "edit_completion_to_touched_receipt_monotonic": 42.6705,
+        "edit_start_to_snapshot_receipt_monotonic": 88.130459,
+        "snapshot_creation_to_receipt_wall_estimate": 12.323,
+        "touched_receipt_to_snapshot_receipt_monotonic": 45.014959,
+        "touched_sse_delivery_wall_estimate": 12.308
+      },
+      "mode": "continuous",
+      "path": "continuous/000009-7aad6b16-6a6d-4bcd-a83a-a9d68bf77000.txt",
+      "sample_id": "000009-7aad6b16-6a6d-4bcd-a83a-a9d68bf77000",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135720149125,
+        "completion_wall_unix_ns": 1783722239521758000,
+        "operation_duration_ms": 0.225709,
+        "start_monotonic_ns": 432135719923416,
+        "start_wall_unix_ns": 1783722239521532000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 323.627958,
+        "edit_completion_to_touched_receipt_monotonic": 274.695,
+        "edit_start_to_snapshot_receipt_monotonic": 323.853667,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453,
+        "watcher_detection_wall_estimate": 10.468
+      },
+      "mode": "continuous",
+      "path": "continuous/000010-e6ed09cd-8b34-4009-881b-7fe99bbcf353.txt",
+      "sample_id": "000010-e6ed09cd-8b34-4009-881b-7fe99bbcf353",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135745893541,
+        "completion_wall_unix_ns": 1783722239547502000,
+        "operation_duration_ms": 0.190458,
+        "start_monotonic_ns": 432135745703083,
+        "start_wall_unix_ns": 1783722239547312000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 297.883542,
+        "edit_completion_to_touched_receipt_monotonic": 248.950584,
+        "edit_start_to_snapshot_receipt_monotonic": 298.074,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000011-793459d9-c423-4d4e-bc6b-206acb45ac31.txt",
+      "sample_id": "000011-793459d9-c423-4d4e-bc6b-206acb45ac31",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135771320208,
+        "completion_wall_unix_ns": 1783722239572929000,
+        "operation_duration_ms": 0.185125,
+        "start_monotonic_ns": 432135771135083,
+        "start_wall_unix_ns": 1783722239572744000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 272.456875,
+        "edit_completion_to_touched_receipt_monotonic": 223.523917,
+        "edit_start_to_snapshot_receipt_monotonic": 272.642,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000012-78c90b70-96e6-4d96-8f40-b59339cece86.txt",
+      "sample_id": "000012-78c90b70-96e6-4d96-8f40-b59339cece86",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135793496916,
+        "completion_wall_unix_ns": 1783722239595106000,
+        "operation_duration_ms": 0.527583,
+        "start_monotonic_ns": 432135792969333,
+        "start_wall_unix_ns": 1783722239594578000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 250.280167,
+        "edit_completion_to_touched_receipt_monotonic": 201.347209,
+        "edit_start_to_snapshot_receipt_monotonic": 250.80775,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000013-455c0d4a-ee4d-47d2-b169-88a908be5525.txt",
+      "sample_id": "000013-455c0d4a-ee4d-47d2-b169-88a908be5525",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135820212750,
+        "completion_wall_unix_ns": 1783722239621822000,
+        "operation_duration_ms": 0.458959,
+        "start_monotonic_ns": 432135819753791,
+        "start_wall_unix_ns": 1783722239621363000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 223.564333,
+        "edit_completion_to_touched_receipt_monotonic": 174.631375,
+        "edit_start_to_snapshot_receipt_monotonic": 224.023292,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000014-44f70897-d18d-495a-ac2b-f00a74ebaa05.txt",
+      "sample_id": "000014-44f70897-d18d-495a-ac2b-f00a74ebaa05",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135844730666,
+        "completion_wall_unix_ns": 1783722239646340000,
+        "operation_duration_ms": 0.474875,
+        "start_monotonic_ns": 432135844255791,
+        "start_wall_unix_ns": 1783722239645865000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 199.046417,
+        "edit_completion_to_touched_receipt_monotonic": 150.113459,
+        "edit_start_to_snapshot_receipt_monotonic": 199.521292,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000015-6a1a1d11-0b4c-4b67-8291-b25ae1fb0db5.txt",
+      "sample_id": "000015-6a1a1d11-0b4c-4b67-8291-b25ae1fb0db5",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135870704083,
+        "completion_wall_unix_ns": 1783722239672313000,
+        "operation_duration_ms": 0.324667,
+        "start_monotonic_ns": 432135870379416,
+        "start_wall_unix_ns": 1783722239671988000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 173.073,
+        "edit_completion_to_touched_receipt_monotonic": 124.140042,
+        "edit_start_to_snapshot_receipt_monotonic": 173.397667,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000016-2c123937-2d1a-4bbc-be76-33e03d93c000.txt",
+      "sample_id": "000016-2c123937-2d1a-4bbc-be76-33e03d93c000",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135895395375,
+        "completion_wall_unix_ns": 1783722239697004000,
+        "operation_duration_ms": 0.186584,
+        "start_monotonic_ns": 432135895208791,
+        "start_wall_unix_ns": 1783722239696817000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 148.381708,
+        "edit_completion_to_touched_receipt_monotonic": 99.44875,
+        "edit_start_to_snapshot_receipt_monotonic": 148.568292,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000017-e6dbd809-bfb1-46b1-bb0d-304b1413b472.txt",
+      "sample_id": "000017-e6dbd809-bfb1-46b1-bb0d-304b1413b472",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135920028791,
+        "completion_wall_unix_ns": 1783722239721638000,
+        "operation_duration_ms": 2.492208,
+        "start_monotonic_ns": 432135917536583,
+        "start_wall_unix_ns": 1783722239719146000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 123.748292,
+        "edit_completion_to_touched_receipt_monotonic": 74.815334,
+        "edit_start_to_snapshot_receipt_monotonic": 126.2405,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000018-6e6559ac-bc36-4450-b54e-d9451c6c962e.txt",
+      "sample_id": "000018-6e6559ac-bc36-4450-b54e-d9451c6c962e",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135946310166,
+        "completion_wall_unix_ns": 1783722239747919000,
+        "operation_duration_ms": 0.186958,
+        "start_monotonic_ns": 432135946123208,
+        "start_wall_unix_ns": 1783722239747732000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 97.466917,
+        "edit_completion_to_touched_receipt_monotonic": 48.533959,
+        "edit_start_to_snapshot_receipt_monotonic": 97.653875,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000019-2ce58c9b-1204-4edd-b831-79975a2047d9.txt",
+      "sample_id": "000019-2ce58c9b-1204-4edd-b831-79975a2047d9",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135969421625,
+        "completion_wall_unix_ns": 1783722239771031000,
+        "operation_duration_ms": 0.750375,
+        "start_monotonic_ns": 432135968671250,
+        "start_wall_unix_ns": 1783722239770281000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.833Z",
+          "seq": 12,
+          "sse_receipt_monotonic_ns": 432136043777083,
+          "sse_receipt_wall_unix_ns": 1783722239845386000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.784Z",
+          "seq": 11,
+          "sse_receipt_monotonic_ns": 432135994844125,
+          "sse_receipt_wall_unix_ns": 1783722239796453000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.532Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 252.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 74.355458,
+        "edit_completion_to_touched_receipt_monotonic": 25.4225,
+        "edit_start_to_snapshot_receipt_monotonic": 75.105833,
+        "snapshot_creation_to_receipt_wall_estimate": 12.386,
+        "touched_receipt_to_snapshot_receipt_monotonic": 48.932958,
+        "touched_sse_delivery_wall_estimate": 12.453
+      },
+      "mode": "continuous",
+      "path": "continuous/000020-0d6af3f6-3de3-42cf-aab1-791a124236d0.txt",
+      "sample_id": "000020-0d6af3f6-3de3-42cf-aab1-791a124236d0",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432135995060125,
+        "completion_wall_unix_ns": 1783722239796669000,
+        "operation_duration_ms": 1.909834,
+        "start_monotonic_ns": 432135993150291,
+        "start_wall_unix_ns": 1783722239794759000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.943Z",
+          "seq": 14,
+          "sse_receipt_monotonic_ns": 432136153252375,
+          "sse_receipt_wall_unix_ns": 1783722239954862000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.900Z",
+          "seq": 13,
+          "sse_receipt_monotonic_ns": 432136111244708,
+          "sse_receipt_wall_unix_ns": 1783722239912854000
+        },
+        "watcher_detection_window_representative": true,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.797Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 103.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 158.19225,
+        "edit_completion_to_touched_receipt_monotonic": 116.184583,
+        "edit_start_to_snapshot_receipt_monotonic": 160.102084,
+        "snapshot_creation_to_receipt_wall_estimate": 11.862,
+        "touched_receipt_to_snapshot_receipt_monotonic": 42.007667,
+        "touched_sse_delivery_wall_estimate": 12.854,
+        "watcher_detection_wall_estimate": 2.241
+      },
+      "mode": "continuous",
+      "path": "continuous/000021-30cb92e5-cd9b-41d6-acdb-116609a7fde1.txt",
+      "sample_id": "000021-30cb92e5-cd9b-41d6-acdb-116609a7fde1",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432136019137791,
+        "completion_wall_unix_ns": 1783722239820747000,
+        "operation_duration_ms": 0.442375,
+        "start_monotonic_ns": 432136018695416,
+        "start_wall_unix_ns": 1783722239820304000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.943Z",
+          "seq": 14,
+          "sse_receipt_monotonic_ns": 432136153252375,
+          "sse_receipt_wall_unix_ns": 1783722239954862000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.900Z",
+          "seq": 13,
+          "sse_receipt_monotonic_ns": 432136111244708,
+          "sse_receipt_wall_unix_ns": 1783722239912854000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.797Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 103.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 134.114584,
+        "edit_completion_to_touched_receipt_monotonic": 92.106917,
+        "edit_start_to_snapshot_receipt_monotonic": 134.556959,
+        "snapshot_creation_to_receipt_wall_estimate": 11.862,
+        "touched_receipt_to_snapshot_receipt_monotonic": 42.007667,
+        "touched_sse_delivery_wall_estimate": 12.854
+      },
+      "mode": "continuous",
+      "path": "continuous/000022-9b5e0c95-daf3-480f-8622-fedadfbbbc69.txt",
+      "sample_id": "000022-9b5e0c95-daf3-480f-8622-fedadfbbbc69",
+      "status": "ok"
+    },
+    {
+      "edit": {
+        "completion_monotonic_ns": 432136043886666,
+        "completion_wall_unix_ns": 1783722239845496000,
+        "operation_duration_ms": 0.821583,
+        "start_monotonic_ns": 432136043065083,
+        "start_wall_unix_ns": 1783722239844674000
+      },
+      "events": {
+        "snapshot": {
+          "created_rfc3339": "2026-07-10T22:23:59.943Z",
+          "seq": 14,
+          "sse_receipt_monotonic_ns": 432136153252375,
+          "sse_receipt_wall_unix_ns": 1783722239954862000
+        },
+        "touched_paths": {
+          "created_rfc3339": "2026-07-10T22:23:59.900Z",
+          "seq": 13,
+          "sse_receipt_monotonic_ns": 432136111244708,
+          "sse_receipt_wall_unix_ns": 1783722239912854000
+        },
+        "watcher_detection_window_representative": false,
+        "watcher_first_observed_rfc3339": "2026-07-10T22:23:59.797Z"
+      },
+      "latency_ms": {
+        "debounce_projector_daemon_wall": 103.0,
+        "edit_completion_to_snapshot_receipt_monotonic": 109.365709,
+        "edit_completion_to_touched_receipt_monotonic": 67.358042,
+        "edit_start_to_snapshot_receipt_monotonic": 110.187292,
+        "snapshot_creation_to_receipt_wall_estimate": 11.862,
+        "touched_receipt_to_snapshot_receipt_monotonic": 42.007667,
+        "touched_sse_delivery_wall_estimate": 12.854
+      },
+      "mode": "continuous",
+      "path": "continuous/000023-30cabebc-40f5-4817-bbfa-8b71ddd38538.txt",
+      "sample_id": "000023-30cabebc-40f5-4817-bbfa-8b71ddd38538",
+      "status": "ok"
+    }
+  ],
+  "schema": 1,
+  "semantics": {
+    "client_intervals": "perf_counter monotonic clock; never subtracted directly from wall timestamps",
+    "daemon_intervals": "differences between daemon RFC3339 wall timestamps",
+    "matching": "unique relative path selects its touched_paths window; the first subsequent snapshot is that coordinator window's complete checkpoint (its diff need not repeat every audit path)",
+    "pipeline": "filesystem edit -> native watcher -> debounce/projector -> durable NDJSON acceptance -> SSE receipt -> matching snapshot SSE receipt",
+    "snapshot_completion": "SSE client receipt of the matching complete jj tree checkpoint, not durable session flush",
+    "sse_overflow_or_gap": "fatal for the run because live timing cannot be reconstructed reliably",
+    "timestamp_precision": "rrjj emits RFC3339 timestamps rounded/truncated to milliseconds; wall-derived estimates have approximately 1 ms quantization and may be slightly negative",
+    "wall_estimates": "same-host daemon/client wall-clock estimates; susceptible to clock adjustment and timestamp quantization",
+    "watcher_detection": "window_started_at is shared by every path in an aggregated window; watcher-detection latency is summarized only for the earliest edit in each window, identified by watcher_detection_window_representative"
+  },
+  "summary": {
+    "all": {
+      "failed": 0,
+      "latency_ms": {
+        "debounce_projector_daemon_wall": {
+          "count": 34,
+          "max": 253.0,
+          "min": 51.0,
+          "p50": 252.0,
+          "p95": 253.0,
+          "p99": 253.0
+        },
+        "edit_completion_to_snapshot_receipt_monotonic": {
+          "count": 34,
+          "max": 323.627958,
+          "min": 74.355458,
+          "p50": 135.85652149999999,
+          "p95": 304.34143575,
+          "p99": 321.22117197
+        },
+        "edit_completion_to_touched_receipt_monotonic": {
+          "count": 34,
+          "max": 274.695,
+          "min": 25.4225,
+          "p50": 92.3452085,
+          "p95": 256.7797774,
+          "p99": 273.58115364
+        },
+        "edit_start_to_snapshot_receipt_monotonic": {
+          "count": 34,
+          "max": 323.853667,
+          "min": 75.105833,
+          "p50": 136.2835215,
+          "p95": 304.55513970000004,
+          "p99": 321.45716575
+        },
+        "snapshot_creation_to_receipt_wall_estimate": {
+          "count": 34,
+          "max": 14.501,
+          "min": 11.862,
+          "p50": 12.323,
+          "p95": 14.501,
+          "p99": 14.501
+        },
+        "touched_receipt_to_snapshot_receipt_monotonic": {
+          "count": 34,
+          "max": 48.932958,
+          "min": 42.007667,
+          "p50": 45.014959,
+          "p95": 48.932958,
+          "p99": 48.932958
+        },
+        "touched_sse_delivery_wall_estimate": {
+          "count": 34,
+          "max": 14.038,
+          "min": 12.019,
+          "p50": 12.453,
+          "p95": 14.038,
+          "p99": 14.038
+        },
+        "watcher_detection_wall_estimate": {
+          "count": 7,
+          "max": 10.883,
+          "min": 2.241,
+          "p50": 10.337,
+          "p95": 10.8074,
+          "p99": 10.86788
+        }
+      },
+      "samples": 34,
+      "successful": 34
+    },
+    "by_mode": {
+      "burst": {
+        "failed": 0,
+        "latency_ms": {
+          "debounce_projector_daemon_wall": {
+            "count": 8,
+            "max": 52.0,
+            "min": 52.0,
+            "p50": 52.0,
+            "p95": 52.0,
+            "p99": 52.0
+          },
+          "edit_completion_to_snapshot_receipt_monotonic": {
+            "count": 8,
+            "max": 121.908959,
+            "min": 117.851334,
+            "p50": 119.8777085,
+            "p95": 121.87285055,
+            "p99": 121.90173731
+          },
+          "edit_completion_to_touched_receipt_monotonic": {
+            "count": 8,
+            "max": 76.445417,
+            "min": 73.775167,
+            "p50": 75.107854,
+            "p95": 76.40930855,
+            "p99": 76.43819531000001
+          },
+          "edit_start_to_snapshot_receipt_monotonic": {
+            "count": 8,
+            "max": 122.130917,
+            "min": 117.911834,
+            "p50": 120.070834,
+            "p95": 122.04389825,
+            "p99": 122.11351325
+          },
+          "snapshot_creation_to_receipt_wall_estimate": {
+            "count": 8,
+            "max": 14.501,
+            "min": 12.095,
+            "p50": 13.298,
+            "p95": 14.501,
+            "p99": 14.501
+          },
+          "touched_receipt_to_snapshot_receipt_monotonic": {
+            "count": 8,
+            "max": 45.463542,
+            "min": 44.076167,
+            "p50": 44.769854499999994,
+            "p95": 45.463542,
+            "p99": 45.463542
+          },
+          "touched_sse_delivery_wall_estimate": {
+            "count": 8,
+            "max": 14.038,
+            "min": 12.019,
+            "p50": 13.028500000000001,
+            "p95": 14.038,
+            "p99": 14.038
+          },
+          "watcher_detection_wall_estimate": {
+            "count": 2,
+            "max": 10.631,
+            "min": 10.337,
+            "p50": 10.484,
+            "p95": 10.6163,
+            "p99": 10.62806
+          }
+        },
+        "samples": 8,
+        "successful": 8
+      },
+      "continuous": {
+        "failed": 0,
+        "latency_ms": {
+          "debounce_projector_daemon_wall": {
+            "count": 24,
+            "max": 253.0,
+            "min": 103.0,
+            "p50": 252.0,
+            "p95": 253.0,
+            "p99": 253.0
+          },
+          "edit_completion_to_snapshot_receipt_monotonic": {
+            "count": 24,
+            "max": 323.627958,
+            "min": 74.355458,
+            "p50": 179.211167,
+            "p95": 313.56699825000004,
+            "p99": 321.95050107
+          },
+          "edit_completion_to_touched_receipt_monotonic": {
+            "count": 24,
+            "max": 274.695,
+            "min": 25.4225,
+            "p50": 132.2372085,
+            "p95": 267.96433940000003,
+            "p99": 273.91868284
+          },
+          "edit_start_to_snapshot_receipt_monotonic": {
+            "count": 24,
+            "max": 323.853667,
+            "min": 75.105833,
+            "p50": 179.6317085,
+            "p95": 313.8139107,
+            "p99": 322.18337825
+          },
+          "snapshot_creation_to_receipt_wall_estimate": {
+            "count": 24,
+            "max": 12.386,
+            "min": 11.862,
+            "p50": 12.323,
+            "p95": 12.386,
+            "p99": 12.386
+          },
+          "touched_receipt_to_snapshot_receipt_monotonic": {
+            "count": 24,
+            "max": 48.932958,
+            "min": 42.007667,
+            "p50": 45.014959,
+            "p95": 48.932958,
+            "p99": 48.932958
+          },
+          "touched_sse_delivery_wall_estimate": {
+            "count": 24,
+            "max": 12.854,
+            "min": 12.308,
+            "p50": 12.453,
+            "p95": 12.854,
+            "p99": 12.854
+          },
+          "watcher_detection_wall_estimate": {
+            "count": 3,
+            "max": 10.468,
+            "min": 2.241,
+            "p50": 6.269,
+            "p95": 10.0481,
+            "p99": 10.38402
+          }
+        },
+        "samples": 24,
+        "successful": 24
+      },
+      "isolated": {
+        "failed": 0,
+        "latency_ms": {
+          "debounce_projector_daemon_wall": {
+            "count": 2,
+            "max": 52.0,
+            "min": 51.0,
+            "p50": 51.5,
+            "p95": 51.95,
+            "p99": 51.99
+          },
+          "edit_completion_to_snapshot_receipt_monotonic": {
+            "count": 2,
+            "max": 118.10125,
+            "min": 109.998875,
+            "p50": 114.0500625,
+            "p95": 117.69613125,
+            "p99": 118.02022625
+          },
+          "edit_completion_to_touched_receipt_monotonic": {
+            "count": 2,
+            "max": 75.178042,
+            "min": 67.9525,
+            "p50": 71.565271,
+            "p95": 74.81676490000001,
+            "p99": 75.10578658
+          },
+          "edit_start_to_snapshot_receipt_monotonic": {
+            "count": 2,
+            "max": 118.349583,
+            "min": 110.139958,
+            "p50": 114.24477049999999,
+            "p95": 117.93910174999999,
+            "p99": 118.26748674999999
+          },
+          "snapshot_creation_to_receipt_wall_estimate": {
+            "count": 2,
+            "max": 12.468,
+            "min": 11.97,
+            "p50": 12.219000000000001,
+            "p95": 12.4431,
+            "p99": 12.46302
+          },
+          "touched_receipt_to_snapshot_receipt_monotonic": {
+            "count": 2,
+            "max": 42.923208,
+            "min": 42.046375,
+            "p50": 42.4847915,
+            "p95": 42.879366350000005,
+            "p99": 42.91443967
+          },
+          "touched_sse_delivery_wall_estimate": {
+            "count": 2,
+            "max": 12.924,
+            "min": 12.544,
+            "p50": 12.734,
+            "p95": 12.905,
+            "p99": 12.9202
+          },
+          "watcher_detection_wall_estimate": {
+            "count": 2,
+            "max": 10.883,
+            "min": 4.17,
+            "p50": 7.5264999999999995,
+            "p95": 10.547349999999998,
+            "p99": 10.81587
+          }
+        },
+        "samples": 2,
+        "successful": 2
+      }
+    }
+  },
+  "units": {
+    "latency": "milliseconds",
+    "raw_monotonic": "nanoseconds from a process-local unspecified origin",
+    "raw_wall": "Unix nanoseconds UTC"
+  }
+}

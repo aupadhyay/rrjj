@@ -1,0 +1,75 @@
+{
+  "host": {
+    "machine": "arm64",
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "python": "3.11.15"
+  },
+  "incremental_overhead_percent": 43.67003454908954,
+  "incremental_overhead_seconds": 18.527668791008182,
+  "recording_off": {
+    "baseline": {
+      "file_bytes": 64,
+      "files_created": 10000,
+      "phase": "setup",
+      "seconds": 0.5022511249990202,
+      "working_set": 10000
+    },
+    "baseline_setup_seconds": 0.5205442499718629,
+    "workload": {
+      "burst_pause_ms": 0.0,
+      "burst_size": 10000,
+      "file_bytes": 64,
+      "logical_mutations": 1000000,
+      "phase": "mutate",
+      "pid": 65728,
+      "seconds": 42.407842833024915,
+      "working_set": 10000
+    },
+    "workload_seconds": 42.426503624999896
+  },
+  "recording_on": {
+    "baseline": {
+      "file_bytes": 64,
+      "files_created": 10000,
+      "phase": "setup",
+      "seconds": 0.5117223749984987,
+      "working_set": 10000
+    },
+    "baseline_setup_seconds": 0.5302195000112988,
+    "cold_session_open_and_index_seconds": 0.04088941600639373,
+    "distinct_touched_paths": 10000,
+    "events": 16,
+    "flush_time_to_durable_seconds": 36.983385999978054,
+    "materialization_seconds": 1.8528422079980373,
+    "materialized_files": 10000,
+    "observed_touch_operations": [
+      "modify"
+    ],
+    "overflow_events": 0,
+    "raw_watcher_events": 2053603,
+    "recorder_baseline_seconds": 2.4744954589987174,
+    "snapshot_count": 7,
+    "touched_path_windows": 7,
+    "warm_index_op_to_tree_lookup_ns": 22.09708,
+    "warm_lookup_iterations": 100000,
+    "workload": {
+      "burst_pause_ms": 0.0,
+      "burst_size": 10000,
+      "file_bytes": 64,
+      "logical_mutations": 1000000,
+      "phase": "mutate",
+      "pid": 66389,
+      "seconds": 60.93510750000132,
+      "working_set": 10000
+    },
+    "workload_seconds": 60.95417241600808
+  },
+  "schema": 1,
+  "semantics": {
+    "baseline_excluded_from_overhead": true,
+    "mutation_count": "workload-reported logical filesystem operations",
+    "snapshots": "jj checkpoints, not every intermediate byte version",
+    "touched_paths": "aggregated watcher audit context, not ground truth"
+  },
+  "workload": "synthetic"
+}

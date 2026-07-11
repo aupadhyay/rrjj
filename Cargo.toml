@@ -1,0 +1,46 @@
+[workspace]
+members = [
+  "bench/jj-scale",
+  "crates/rrjj",
+  "crates/rrjj-core",
+  "crates/rrjj-reader",
+  "crates/rrjj-schema",
+  "crates/rrjj-sinks",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+repository = "https://github.com/aupadhyay/rrjj"
+homepage = "https://github.com/aupadhyay/rrjj"
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
+aws-smithy-types = "1"
+axum = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+globset = "0.4"
+jj-lib = { version = "=0.43.0", default-features = false, features = ["git"] }
+notify = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tower-http = { version = "0.6", features = ["cors"] }
+tower = "0.5"
+uuid = { version = "1", features = ["v4"] }
+walkdir = "2"
+
+[profile.release]
+debug = "line-tables-only"
