@@ -469,6 +469,7 @@ mod tests {
                 events_object: None,
                 durable_seq: Some(0),
                 durable_op: Some("op:a".into()),
+                storage: None,
             },
         );
         assert!(matches!(
@@ -507,6 +508,7 @@ mod tests {
                 events_object: None,
                 durable_seq: Some(0),
                 durable_op: Some("op:a".into()),
+                storage: None,
             },
         );
         assert!(matches!(

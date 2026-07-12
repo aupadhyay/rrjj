@@ -15,6 +15,26 @@ pub struct FormatMetadata {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoragePointers {
+    pub provider: String,
+    pub session_uri: String,
+    pub manifest_uri: String,
+    pub repository_uri: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub events_uri: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoragePointer {
+    pub provider: String,
+    pub uri: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SessionManifest {
     pub session_id: String,
     pub format: FormatMetadata,
@@ -26,6 +46,8 @@ pub struct SessionManifest {
     pub durable_seq: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub durable_op: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub storage: Option<StoragePointers>,
 }
 
 impl SessionManifest {
@@ -270,11 +292,43 @@ mod tests {
             events_object: Some("events/00000000000000000009.ndjson".into()),
             durable_seq: Some(7),
             durable_op: Some("op:old".into()),
+            storage: Some(StoragePointers {
+                provider: "s3".into(),
+                session_uri: "s3://recordings/rrjj/s".into(),
+                manifest_uri: "s3://recordings/rrjj/s/manifest.json".into(),
+                repository_uri: "s3://recordings/rrjj/s/store/".into(),
+                events_uri: Some(
+                    "s3://recordings/rrjj/s/events/00000000000000000009.ndjson".into(),
+                ),
+            }),
         };
         assert!(manifest.is_compatible());
         let value = serde_json::to_value(&manifest).unwrap();
         assert_eq!(value["last_seq"], 9);
         assert_eq!(value["durable_seq"], 7);
         assert_ne!(value["last_op"], value["durable_op"]);
+        assert_eq!(
+            value["storage"]["manifest_uri"],
+            "s3://recordings/rrjj/s/manifest.json"
+        );
+    }
+
+    #[test]
+    fn old_manifest_without_storage_remains_compatible() {
+        let manifest: SessionManifest = serde_json::from_value(serde_json::json!({
+            "session_id": "s",
+            "format": {
+                "session_format": SESSION_FORMAT_VERSION,
+                "schema_version": SCHEMA_VERSION,
+                "rrjj_version": "0.1.0",
+                "jj_lib_version": "0.43.0",
+                "jj_store_version": "jj-lib-0.43.0/git"
+            },
+            "last_seq": 0,
+            "last_op": "op:a"
+        }))
+        .unwrap();
+        assert!(manifest.storage.is_none());
+        assert!(manifest.is_compatible());
     }
 }

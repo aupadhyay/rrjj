@@ -20,12 +20,12 @@ homepage = "https://github.com/aupadhyay/rrjj"
 [workspace.dependencies]
 anyhow = "1"
 async-trait = "0.1"
-aws-config = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
-aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
 aws-smithy-types = "1"
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 futures = "0.3"
 globset = "0.4"
 jj-lib = { version = "=0.43.0", default-features = false, features = ["git"] }
@@ -33,6 +33,7 @@ notify = "8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "json", "chrono"] }
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }

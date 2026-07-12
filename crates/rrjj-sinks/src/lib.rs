@@ -11,8 +11,11 @@ use async_trait::async_trait;
 use aws_config::{BehaviorVersion, Region};
 use aws_sdk_s3::Client;
 use aws_sdk_s3::primitives::ByteStream;
-use rrjj_schema::{Event, FormatMetadata, SessionManifest};
+use rrjj_schema::{
+    Event, EventBody, FormatMetadata, SessionManifest, StoragePointer, StoragePointers,
+};
 use sha2::{Digest as _, Sha256};
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use thiserror::Error;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncWriteExt as _, BufWriter};
@@ -37,6 +40,10 @@ pub enum SinkError {
     Failed(String),
     #[error("invalid flush request: {0}")]
     InvalidFlush(String),
+    #[error("invalid sink configuration: {0}")]
+    InvalidConfig(String),
+    #[error("database sink: {0}")]
+    Database(#[from] sqlx::Error),
 }
 
 #[derive(Clone, Debug)]
@@ -49,6 +56,19 @@ pub struct S3SinkConfig {
     pub max_spool_bytes: u64,
     pub session_id: String,
     pub format: FormatMetadata,
+}
+
+impl S3SinkConfig {
+    pub fn storage_pointers(&self, events_object: Option<&str>) -> StoragePointers {
+        let session_uri = format!("s3://{}/{}", self.bucket, s3_session_key(self));
+        StoragePointers {
+            provider: "s3".into(),
+            manifest_uri: format!("{session_uri}/manifest.json"),
+            repository_uri: format!("{session_uri}/store/"),
+            events_uri: events_object.map(|path| format!("{session_uri}/{path}")),
+            session_uri,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -85,6 +105,228 @@ pub trait Sink: Send + Sync {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct SessionPublication {
+    pub manifest: SessionManifest,
+    pub events: Vec<Event>,
+    pub objects: Vec<RepositoryObject>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RepositoryObject {
+    pub path: String,
+    pub sha256: String,
+    pub size: u64,
+    pub inline_bytes: Option<Vec<u8>>,
+    pub storage: Option<StoragePointer>,
+}
+
+#[async_trait]
+pub trait SessionIndex: Send + Sync {
+    async fn publish(&self, publication: &SessionPublication) -> Result<(), SinkError>;
+}
+
+#[derive(Clone, Debug)]
+pub struct PostgresIndexConfig {
+    pub database_url: String,
+    pub max_connections: u32,
+    pub sessions_table: String,
+    pub events_table: String,
+    pub objects_table: String,
+}
+
+pub struct PostgresSessionIndex {
+    pool: PgPool,
+    sessions_table: String,
+    events_table: String,
+    objects_table: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct PostgresSessionSinkConfig {
+    pub s3: S3SinkConfig,
+    pub database: PostgresIndexConfig,
+    pub inline_object_max_bytes: u64,
+}
+
+pub struct PostgresSessionSink {
+    spool: NdjsonSink,
+    index: PostgresSessionIndex,
+    s3_client: Client,
+    config: PostgresSessionSinkConfig,
+    uploaded_hashes: Mutex<BTreeSet<String>>,
+    next_seq: Mutex<u64>,
+}
+
+impl PostgresSessionSink {
+    pub async fn create(config: PostgresSessionSinkConfig) -> Result<Self, SinkError> {
+        let shared = aws_config::defaults(BehaviorVersion::latest())
+            .region(Region::new(config.s3.region.clone()))
+            .load()
+            .await;
+        let mut builder = aws_sdk_s3::config::Builder::from(&shared);
+        if let Some(endpoint) = &config.s3.endpoint {
+            builder = builder.endpoint_url(endpoint).force_path_style(true);
+        }
+        Self::with_client(config, Client::from_conf(builder.build())).await
+    }
+
+    pub async fn with_client(
+        config: PostgresSessionSinkConfig,
+        s3_client: Client,
+    ) -> Result<Self, SinkError> {
+        let existing = match tokio::fs::read(&config.s3.spool_path).await {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(error) => return Err(error.into()),
+        };
+        let accepted = parse_event_spool(
+            &existing,
+            &config.s3.spool_path,
+            &config.s3.session_id,
+            config.s3.format.schema_version,
+            "Postgres",
+        )?;
+        let spool =
+            NdjsonSink::create_bounded(&config.s3.spool_path, config.s3.max_spool_bytes).await?;
+        let index = PostgresSessionIndex::connect(config.database.clone()).await?;
+        Ok(Self {
+            spool,
+            index,
+            s3_client,
+            config,
+            uploaded_hashes: Mutex::new(BTreeSet::new()),
+            next_seq: Mutex::new(accepted.len() as u64),
+        })
+    }
+
+    async fn repository_objects(
+        &self,
+        shadow_root: &Path,
+    ) -> Result<Vec<RepositoryObject>, SinkError> {
+        let repository = shadow_root.join("repo");
+        let mut files = WalkDir::new(&repository)
+            .follow_links(false)
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| SinkError::Failed(format!("walk shadow repository: {error}")))?;
+        files.retain(|entry| entry.file_type().is_file());
+        files.sort_by_key(|entry| entry.path().to_owned());
+        let mut objects = Vec::with_capacity(files.len());
+        for entry in files {
+            let relative = entry
+                .path()
+                .strip_prefix(&repository)
+                .map_err(|error| SinkError::Failed(error.to_string()))?
+                .to_string_lossy()
+                .replace('\\', "/");
+            let bytes = tokio::fs::read(entry.path()).await?;
+            let hash = Sha256::digest(&bytes)
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            let size = bytes.len() as u64;
+            if size <= self.config.inline_object_max_bytes {
+                objects.push(RepositoryObject {
+                    path: relative,
+                    sha256: hash,
+                    size,
+                    inline_bytes: Some(bytes),
+                    storage: None,
+                });
+                continue;
+            }
+
+            let object_key = s3_key(&self.config.s3, &format!("objects/{hash}"));
+            let should_upload = self.uploaded_hashes.lock().await.insert(hash.clone());
+            if should_upload {
+                self.s3_client
+                    .put_object()
+                    .bucket(&self.config.s3.bucket)
+                    .key(&object_key)
+                    .body(ByteStream::from(bytes))
+                    .send()
+                    .await
+                    .map_err(|error| SinkError::Failed(format!("S3 put failed: {error}")))?;
+            }
+            objects.push(RepositoryObject {
+                path: relative,
+                sha256: hash,
+                size,
+                inline_bytes: None,
+                storage: Some(StoragePointer {
+                    provider: "s3".into(),
+                    uri: format!("s3://{}/{}", self.config.s3.bucket, object_key),
+                    region: Some(self.config.s3.region.clone()),
+                    endpoint: self.config.s3.endpoint.clone(),
+                }),
+            });
+        }
+        Ok(objects)
+    }
+}
+
+impl PostgresSessionIndex {
+    pub async fn connect(config: PostgresIndexConfig) -> Result<Self, SinkError> {
+        let sessions_table = quote_table_name(&config.sessions_table)?;
+        let events_table = quote_table_name(&config.events_table)?;
+        let objects_table = quote_table_name(&config.objects_table)?;
+        let events_timestamp_index =
+            quote_identifier(&events_timestamp_index_name(&config.events_table))?;
+        let migration = include_str!("../migrations/0001_sessions.sql")
+            .replace("__RRJJ_SESSIONS_TABLE__", &sessions_table)
+            .replace("__RRJJ_EVENTS_TABLE__", &events_table)
+            .replace("__RRJJ_OBJECTS_TABLE__", &objects_table)
+            .replace("__RRJJ_EVENTS_TIMESTAMP_INDEX__", &events_timestamp_index);
+        let pool = PgPoolOptions::new()
+            .max_connections(config.max_connections.max(1))
+            .connect(&config.database_url)
+            .await?;
+        // The only dynamic fragments are identifiers escaped by `quote_identifier`.
+        sqlx::raw_sql(sqlx::AssertSqlSafe(migration))
+            .execute(&pool)
+            .await?;
+        Ok(Self {
+            pool,
+            sessions_table,
+            events_table,
+            objects_table,
+        })
+    }
+}
+
+fn quote_table_name(name: &str) -> Result<String, SinkError> {
+    let parts = name.split('.').collect::<Vec<_>>();
+    if !matches!(parts.len(), 1 | 2) {
+        return Err(SinkError::InvalidConfig(format!(
+            "database table name must be `table` or `schema.table`: {name:?}"
+        )));
+    }
+    parts
+        .into_iter()
+        .map(quote_identifier)
+        .collect::<Result<Vec<_>, _>>()
+        .map(|parts| parts.join("."))
+}
+
+fn quote_identifier(identifier: &str) -> Result<String, SinkError> {
+    if identifier.is_empty() || identifier.contains('\0') {
+        return Err(SinkError::InvalidConfig(format!(
+            "invalid empty or NUL-containing database identifier: {identifier:?}"
+        )));
+    }
+    Ok(format!("\"{}\"", identifier.replace('"', "\"\"")))
+}
+
+fn events_timestamp_index_name(events_table: &str) -> String {
+    let digest = Sha256::digest(events_table.as_bytes());
+    let suffix = digest[..6]
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("rrjj_events_session_timestamp_{suffix}")
+}
+
 impl BroadcastSink {
     pub fn new(durable: Arc<dyn Sink>, capacity: usize) -> (Self, broadcast::Sender<Event>) {
         let (events, _) = broadcast::channel(capacity.max(1));
@@ -112,6 +354,174 @@ impl Sink for BroadcastSink {
 
     async fn flush_session(&self, request: &FlushRequest) -> Result<(), SinkError> {
         self.durable.flush_session(request).await
+    }
+}
+
+#[async_trait]
+impl SessionIndex for PostgresSessionIndex {
+    async fn publish(&self, publication: &SessionPublication) -> Result<(), SinkError> {
+        let insert_event = format!(
+            r#"
+            INSERT INTO {} AS existing (
+                session_id, seq, timestamp, event_type, event
+            )
+            VALUES ($1, $2, CAST($3 AS TIMESTAMPTZ), $4, $5)
+            ON CONFLICT (session_id, seq) DO UPDATE SET
+                timestamp = EXCLUDED.timestamp,
+                event_type = EXCLUDED.event_type,
+                event = EXCLUDED.event
+            WHERE existing.event = EXCLUDED.event
+            "#,
+            self.events_table
+        );
+        for event in &publication.events {
+            let seq = i64::try_from(event.seq).map_err(|_| {
+                SinkError::InvalidFlush(format!("event sequence {} exceeds INT8", event.seq))
+            })?;
+            let encoded = serde_json::to_value(event)?;
+            let result = sqlx::query(sqlx::AssertSqlSafe(insert_event.as_str()))
+                .bind(&event.session_id)
+                .bind(seq)
+                .bind(&event.ts)
+                .bind(event_type(event))
+                .bind(encoded)
+                .execute(&self.pool)
+                .await?;
+            if result.rows_affected() == 0 {
+                return Err(SinkError::Failed(format!(
+                    "database contains a different event at session {} sequence {}",
+                    event.session_id, event.seq
+                )));
+            }
+        }
+
+        let upsert_object = format!(
+            r#"
+            INSERT INTO {} (
+                session_id, path, sha256, size, inline_bytes, storage
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (session_id, path) DO UPDATE SET
+                sha256 = EXCLUDED.sha256,
+                size = EXCLUDED.size,
+                inline_bytes = EXCLUDED.inline_bytes,
+                storage = EXCLUDED.storage
+            "#,
+            self.objects_table
+        );
+        for object in &publication.objects {
+            let size = i64::try_from(object.size).map_err(|_| {
+                SinkError::InvalidFlush(format!(
+                    "repository object size {} exceeds INT8",
+                    object.size
+                ))
+            })?;
+            sqlx::query(sqlx::AssertSqlSafe(upsert_object.as_str()))
+                .bind(&publication.manifest.session_id)
+                .bind(&object.path)
+                .bind(&object.sha256)
+                .bind(size)
+                .bind(&object.inline_bytes)
+                .bind(
+                    object
+                        .storage
+                        .as_ref()
+                        .map(serde_json::to_value)
+                        .transpose()?,
+                )
+                .execute(&self.pool)
+                .await?;
+        }
+
+        let durable_seq = publication.manifest.durable_seq.ok_or_else(|| {
+            SinkError::InvalidFlush("indexed manifest has no durable sequence".into())
+        })?;
+        let durable_op = publication.manifest.durable_op.as_deref().ok_or_else(|| {
+            SinkError::InvalidFlush("indexed manifest has no durable operation".into())
+        })?;
+        let durable_seq = i64::try_from(durable_seq).map_err(|_| {
+            SinkError::InvalidFlush(format!("durable sequence {durable_seq} exceeds INT8"))
+        })?;
+        let upsert_session = format!(
+            r#"
+            INSERT INTO {} AS existing (
+                session_id, format, manifest, durable_seq, durable_op
+            )
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (session_id) DO UPDATE SET
+                format = EXCLUDED.format,
+                manifest = EXCLUDED.manifest,
+                durable_seq = EXCLUDED.durable_seq,
+                durable_op = EXCLUDED.durable_op,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE existing.durable_seq <= EXCLUDED.durable_seq
+            "#,
+            self.sessions_table
+        );
+        sqlx::query(sqlx::AssertSqlSafe(upsert_session.as_str()))
+            .bind(&publication.manifest.session_id)
+            .bind(serde_json::to_value(&publication.manifest.format)?)
+            .bind(serde_json::to_value(&publication.manifest)?)
+            .bind(durable_seq)
+            .bind(durable_op)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl Sink for PostgresSessionSink {
+    async fn emit(&self, event: &Event) -> Result<(), SinkError> {
+        let mut next_seq = self.next_seq.lock().await;
+        if event.seq != *next_seq {
+            return Err(SinkError::Failed(format!(
+                "Postgres event sequence mismatch: expected {}, got {}",
+                *next_seq, event.seq
+            )));
+        }
+        self.spool.emit(event).await?;
+        *next_seq += 1;
+        Ok(())
+    }
+
+    async fn flush(&self) -> Result<(), SinkError> {
+        self.spool.flush().await
+    }
+
+    async fn flush_session(&self, request: &FlushRequest) -> Result<(), SinkError> {
+        self.flush().await?;
+        let bytes = tokio::fs::read(&self.config.s3.spool_path).await?;
+        let events = parse_event_spool(
+            &bytes,
+            &self.config.s3.spool_path,
+            &self.config.s3.session_id,
+            self.config.s3.format.schema_version,
+            "Postgres",
+        )?;
+        if events.last().map(|event| event.seq) != Some(request.last_seq) {
+            return Err(SinkError::InvalidFlush(format!(
+                "Postgres event spool does not end at requested sequence {}",
+                request.last_seq
+            )));
+        }
+        let objects = self.repository_objects(&request.shadow_root).await?;
+        self.index
+            .publish(&SessionPublication {
+                manifest: SessionManifest {
+                    session_id: self.config.s3.session_id.clone(),
+                    format: self.config.s3.format.clone(),
+                    last_seq: request.last_seq,
+                    last_op: request.last_op.clone(),
+                    events_object: None,
+                    durable_seq: Some(request.last_seq),
+                    durable_op: Some(request.last_op.clone()),
+                    storage: None,
+                },
+                events,
+                objects,
+            })
+            .await
     }
 }
 
@@ -160,6 +570,7 @@ impl S3SessionSink {
             events_object: None,
             durable_seq: None,
             durable_op: None,
+            storage: None,
         };
         for event in &accepted {
             manifest.last_seq = event.seq;
@@ -220,11 +631,15 @@ impl S3SessionSink {
 }
 
 fn s3_key(config: &S3SinkConfig, suffix: &str) -> String {
+    format!("{}/{}", s3_session_key(config), suffix)
+}
+
+fn s3_session_key(config: &S3SinkConfig) -> String {
     let prefix = config.prefix.trim_matches('/');
     if prefix.is_empty() {
-        format!("{}/{}", config.session_id, suffix)
+        config.session_id.clone()
     } else {
-        format!("{}/{}/{}", prefix, config.session_id, suffix)
+        format!("{}/{}", prefix, config.session_id)
     }
 }
 
@@ -416,6 +831,11 @@ impl Sink for S3SessionSink {
         manifest.events_object = Some(events_object);
         manifest.durable_seq = Some(request.last_seq);
         manifest.durable_op = Some(request.last_op.clone());
+        manifest.storage = Some(
+            self.inner
+                .config
+                .storage_pointers(manifest.events_object.as_deref()),
+        );
         self.put(
             self.key("manifest.json"),
             ByteStream::from(serde_json::to_vec_pretty(&manifest)?),
@@ -429,7 +849,13 @@ impl Sink for S3SessionSink {
 }
 
 pub struct NdjsonSink {
-    writer: Mutex<BufWriter<File>>,
+    state: Mutex<NdjsonState>,
+    max_spool_bytes: u64,
+}
+
+struct NdjsonState {
+    writer: BufWriter<File>,
+    bytes: u64,
 }
 
 pub struct DirectorySessionSink {
@@ -515,6 +941,7 @@ impl DirectorySessionSink {
             events_object: None,
             durable_seq: None,
             durable_op: None,
+            storage: None,
         };
         Ok(Self {
             spool: Mutex::new(BufWriter::new(file)),
@@ -682,10 +1109,26 @@ fn fail_s3_spool(state: &mut S3State, path: &Path, error: std::io::Error) -> Sin
 }
 
 fn parse_spool(bytes: &[u8], config: &S3SinkConfig) -> Result<Vec<Event>, SinkError> {
+    parse_event_spool(
+        bytes,
+        &config.spool_path,
+        &config.session_id,
+        config.format.schema_version,
+        "S3",
+    )
+}
+
+fn parse_event_spool(
+    bytes: &[u8],
+    path: &Path,
+    session_id: &str,
+    schema_version: u8,
+    sink_name: &str,
+) -> Result<Vec<Event>, SinkError> {
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err(SinkError::Failed(format!(
-            "S3 spool has an incomplete final line: {}",
-            config.spool_path.display()
+            "{sink_name} spool has an incomplete final line: {}",
+            path.display()
         )));
     }
     bytes
@@ -697,22 +1140,22 @@ fn parse_spool(bytes: &[u8], config: &S3SinkConfig) -> Result<Vec<Event>, SinkEr
             let expected = index as u64;
             if event.seq != expected {
                 return Err(SinkError::Failed(format!(
-                    "S3 spool sequence mismatch on line {}: expected {}, got {}",
+                    "{sink_name} spool sequence mismatch on line {}: expected {}, got {}",
                     index + 1,
                     expected,
                     event.seq
                 )));
             }
-            if event.session_id != config.session_id {
+            if event.session_id != session_id {
                 return Err(SinkError::Failed(format!(
-                    "S3 spool belongs to session {}, not {}",
-                    event.session_id, config.session_id
+                    "{sink_name} spool belongs to session {}, not {}",
+                    event.session_id, session_id
                 )));
             }
-            if event.v != config.format.schema_version {
+            if event.v != schema_version {
                 return Err(SinkError::Failed(format!(
-                    "S3 spool schema {} is incompatible with configured schema {}",
-                    event.v, config.format.schema_version
+                    "{sink_name} spool schema {} is incompatible with configured schema {}",
+                    event.v, schema_version
                 )));
             }
             Ok(event)
@@ -756,10 +1199,23 @@ async fn write_cursor_atomic(path: &Path, cursor: &SinkCursor) -> Result<(), std
 
 fn event_op(event: &Event) -> Option<&str> {
     match &event.body {
-        rrjj_schema::EventBody::SessionStart(value) => Some(&value.baseline_op),
-        rrjj_schema::EventBody::Snapshot(value) => Some(&value.op),
-        rrjj_schema::EventBody::SessionEnd(value) => Some(&value.final_op),
+        EventBody::SessionStart(value) => Some(&value.baseline_op),
+        EventBody::Snapshot(value) => Some(&value.op),
+        EventBody::SessionEnd(value) => Some(&value.final_op),
         _ => None,
+    }
+}
+
+fn event_type(event: &Event) -> &'static str {
+    match &event.body {
+        EventBody::SessionStart(_) => "session_start",
+        EventBody::Snapshot(_) => "snapshot",
+        EventBody::TouchedPaths(_) => "touched_paths",
+        EventBody::Mark(_) => "mark",
+        EventBody::Flush(_) => "flush",
+        EventBody::SessionEnd(_) => "session_end",
+        EventBody::Error(_) => "error",
+        EventBody::Overflow(_) => "overflow",
     }
 }
 
@@ -1095,6 +1551,13 @@ async fn set_private_directory_permissions(_path: &Path) -> Result<(), std::io::
 
 impl NdjsonSink {
     pub async fn create(path: impl AsRef<Path>) -> Result<Self, SinkError> {
+        Self::create_bounded(path, u64::MAX).await
+    }
+
+    pub async fn create_bounded(
+        path: impl AsRef<Path>,
+        max_spool_bytes: u64,
+    ) -> Result<Self, SinkError> {
         let path = path.as_ref();
         let file = OpenOptions::new()
             .create(true)
@@ -1102,8 +1565,20 @@ impl NdjsonSink {
             .open(path)
             .await?;
         set_private_file_permissions(path).await?;
+        let bytes = file.metadata().await?.len();
+        if bytes > max_spool_bytes {
+            return Err(SinkError::SpoolFull {
+                used: bytes,
+                attempted: 0,
+                limit: max_spool_bytes,
+            });
+        }
         Ok(Self {
-            writer: Mutex::new(BufWriter::new(file)),
+            state: Mutex::new(NdjsonState {
+                writer: BufWriter::new(file),
+                bytes,
+            }),
+            max_spool_bytes,
         })
     }
 }
@@ -1113,15 +1588,23 @@ impl Sink for NdjsonSink {
     async fn emit(&self, event: &Event) -> Result<(), SinkError> {
         let mut line = serde_json::to_vec(event)?;
         line.push(b'\n');
-        let mut writer = self.writer.lock().await;
-        writer.write_all(&line).await?;
-        writer.flush().await?;
-        writer.get_ref().sync_data().await?;
+        let mut state = self.state.lock().await;
+        if state.bytes + line.len() as u64 > self.max_spool_bytes {
+            return Err(SinkError::SpoolFull {
+                used: state.bytes,
+                attempted: line.len() as u64,
+                limit: self.max_spool_bytes,
+            });
+        }
+        state.writer.write_all(&line).await?;
+        state.writer.flush().await?;
+        state.writer.get_ref().sync_data().await?;
+        state.bytes += line.len() as u64;
         Ok(())
     }
 
     async fn flush(&self) -> Result<(), SinkError> {
-        self.writer.lock().await.flush().await?;
+        self.state.lock().await.writer.flush().await?;
         Ok(())
     }
 }
@@ -1643,6 +2126,229 @@ mod tests {
         assert!(matches!(
             S3SessionSink::with_client(incompatible, client).await,
             Err(SinkError::Failed(message)) if message.contains("belongs to session")
+        ));
+    }
+
+    #[tokio::test]
+    async fn postgres_index_migrates_and_publishes_idempotently_when_configured() {
+        let Ok(database_url) = std::env::var("RRJJ_TEST_DATABASE_URL") else {
+            return;
+        };
+        let index = PostgresSessionIndex::connect(PostgresIndexConfig {
+            database_url,
+            max_connections: 1,
+            sessions_table: "public.rrjj test sessions".into(),
+            events_table: "public.rrjj test events".into(),
+            objects_table: "public.rrjj test objects".into(),
+        })
+        .await
+        .unwrap();
+        let session_id = format!("rrjj-test-{}", std::process::id());
+        let event = Event::new(
+            session_id.clone(),
+            0,
+            EventBody::Overflow(Overflow {
+                source: "test".into(),
+                raw_events: 1,
+                recovery: OverflowRecovery::FullScanSnapshot,
+            }),
+        );
+        let publication = SessionPublication {
+            manifest: SessionManifest {
+                session_id: session_id.clone(),
+                format: format(),
+                last_seq: 0,
+                last_op: "op:a".into(),
+                events_object: None,
+                durable_seq: Some(0),
+                durable_op: Some("op:a".into()),
+                storage: None,
+            },
+            events: vec![event],
+            objects: vec![RepositoryObject {
+                path: "store/object".into(),
+                sha256: "abc".into(),
+                size: 3,
+                inline_bytes: Some(b"abc".to_vec()),
+                storage: None,
+            }],
+        };
+
+        index.publish(&publication).await.unwrap();
+        index.publish(&publication).await.unwrap();
+
+        let event_count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT COUNT(*) FROM {} WHERE session_id = $1",
+            index.events_table
+        )))
+        .bind(&session_id)
+        .fetch_one(&index.pool)
+        .await
+        .unwrap();
+        let durable_seq: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT durable_seq FROM {} WHERE session_id = $1",
+            index.sessions_table
+        )))
+        .bind(&session_id)
+        .fetch_one(&index.pool)
+        .await
+        .unwrap();
+        let object: (Option<Vec<u8>>, Option<serde_json::Value>) =
+            sqlx::query_as(sqlx::AssertSqlSafe(format!(
+                "SELECT inline_bytes, storage FROM {} WHERE session_id = $1",
+                index.objects_table
+            )))
+            .bind(&session_id)
+            .fetch_one(&index.pool)
+            .await
+            .unwrap();
+        assert_eq!(event_count, 1);
+        assert_eq!(durable_seq, 0);
+        assert_eq!(object, (Some(b"abc".to_vec()), None));
+
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "DELETE FROM {} WHERE session_id = $1",
+            index.objects_table
+        )))
+        .bind(&session_id)
+        .execute(&index.pool)
+        .await
+        .unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "DELETE FROM {} WHERE session_id = $1",
+            index.events_table
+        )))
+        .bind(&session_id)
+        .execute(&index.pool)
+        .await
+        .unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "DELETE FROM {} WHERE session_id = $1",
+            index.sessions_table
+        )))
+        .bind(&session_id)
+        .execute(&index.pool)
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn postgres_session_keeps_small_objects_inline_and_uploads_only_large_objects() {
+        use aws_config::retry::RetryConfig;
+        use aws_sdk_s3::config::{Credentials, Region};
+        use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+        use tokio::net::TcpListener;
+
+        let Ok(database_url) = std::env::var("RRJJ_TEST_DATABASE_URL") else {
+            return;
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = format!("http://{}", listener.local_addr().unwrap());
+        let uploaded_request = Arc::new(Mutex::new(None::<String>));
+        let captured = uploaded_request.clone();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut bytes = vec![0; 64 * 1024];
+            let read = stream.read(&mut bytes).await.unwrap();
+            let request = String::from_utf8_lossy(&bytes[..read]);
+            *captured.lock().await = request.lines().next().map(str::to_owned);
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n")
+                .await
+                .unwrap();
+        });
+        let client = Client::from_conf(
+            aws_sdk_s3::config::Builder::new()
+                .behavior_version(BehaviorVersion::latest())
+                .region(Region::new("us-east-1"))
+                .credentials_provider(Credentials::new("test", "test", None, None, "test"))
+                .retry_config(RetryConfig::disabled())
+                .endpoint_url(&endpoint)
+                .force_path_style(true)
+                .build(),
+        );
+        let temp = tempfile::tempdir().unwrap();
+        let shadow = temp.path().join("shadow");
+        fs::create_dir_all(shadow.join("repo")).unwrap();
+        fs::write(shadow.join("repo/small"), b"1234").unwrap();
+        fs::write(shadow.join("repo/large"), b"12345").unwrap();
+        let session_id = format!("rrjj-tiered-test-{}", std::process::id());
+        let table_suffix = std::process::id();
+        let config = PostgresSessionSinkConfig {
+            s3: S3SinkConfig {
+                bucket: "bucket".into(),
+                prefix: "prefix".into(),
+                region: "us-east-1".into(),
+                endpoint: Some(endpoint),
+                spool_path: temp.path().join("spool.ndjson"),
+                max_spool_bytes: 10_000,
+                session_id: session_id.clone(),
+                format: format(),
+            },
+            database: PostgresIndexConfig {
+                database_url,
+                max_connections: 1,
+                sessions_table: format!("rrjj_tiered_sessions_{table_suffix}"),
+                events_table: format!("rrjj_tiered_events_{table_suffix}"),
+                objects_table: format!("rrjj_tiered_objects_{table_suffix}"),
+            },
+            inline_object_max_bytes: 4,
+        };
+        let sink = PostgresSessionSink::with_client(config, client)
+            .await
+            .unwrap();
+        sink.emit(&Event::new(
+            session_id.clone(),
+            0,
+            EventBody::Overflow(Overflow {
+                source: "test".into(),
+                raw_events: 1,
+                recovery: OverflowRecovery::FullScanSnapshot,
+            }),
+        ))
+        .await
+        .unwrap();
+        sink.flush_session(&FlushRequest {
+            shadow_root: shadow,
+            last_seq: 0,
+            last_op: "op:a".into(),
+        })
+        .await
+        .unwrap();
+        server.await.unwrap();
+
+        let rows: Vec<(String, Option<Vec<u8>>, Option<serde_json::Value>)> =
+            sqlx::query_as(sqlx::AssertSqlSafe(format!(
+                "SELECT path, inline_bytes, storage FROM {} WHERE session_id = $1 ORDER BY path",
+                sink.index.objects_table
+            )))
+            .bind(&session_id)
+            .fetch_all(&sink.index.pool)
+            .await
+            .unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].0, "large");
+        assert!(rows[0].1.is_none());
+        assert_eq!(rows[0].2.as_ref().unwrap()["provider"], "s3");
+        assert_eq!(rows[1], ("small".into(), Some(b"1234".to_vec()), None));
+        let request = uploaded_request.lock().await.clone().unwrap();
+        assert!(request.starts_with("PUT /bucket/prefix/"));
+        assert!(request.contains("/objects/"));
+    }
+
+    #[test]
+    fn safely_quotes_custom_and_schema_qualified_table_names() {
+        assert_eq!(
+            quote_table_name("audit.rrjj-events").unwrap(),
+            r#""audit"."rrjj-events""#
+        );
+        assert_eq!(
+            quote_table_name(r#"events"; DROP TABLE users; --"#).unwrap(),
+            r#""events""; DROP TABLE users; --""#
+        );
+        assert!(matches!(
+            quote_table_name("catalog.schema.table"),
+            Err(SinkError::InvalidConfig(_))
         ));
     }
 

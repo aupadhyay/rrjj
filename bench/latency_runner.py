@@ -473,6 +473,8 @@ def run(args: argparse.Namespace, work: Path) -> dict[str, Any]:
     control = work / "rrjj.sock"
     log_path = work / "daemon.log"
     root.mkdir(parents=True)
+    for mode in ("isolated", "burst", "continuous"):
+        (root / mode).mkdir()
     shadow.mkdir()
     port = available_port()
     session_id = f"latency-{uuid.uuid4()}"
