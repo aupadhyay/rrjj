@@ -21,7 +21,10 @@ durable session layout, and jj storage compatibility may change before 1.0.
 workload → native watcher → debounce/overflow recovery → jj tree checkpoint
                               │                         │
                               └→ touched-path events    ├→ NDJSON/SSE
-                                                        └→ local or S3 store
+                                                        ├→ local or S3 session
+                                                        └→ Postgres/Cockroach
+                                                            ├→ events + small repository payloads
+                                                            └→ S3 for large payloads only
 
 durable events + store → rrjj reader → index / inspect / diff / materialize
 ```
@@ -147,7 +150,8 @@ uploads immutable live objects at
 backoff after transient failures. A flush waits for live upload through its
 target sequence, uploads changed store objects and an immutable versioned
 NDJSON object, then publishes `manifest.json` with the NDJSON object pointer and
-durability watermark last.
+durability watermark last. S3 manifests also contain `storage` URIs for
+the session root, manifest, jj store, and current immutable event object.
 
 On restart, an existing S3 spool is parsed and checked for contiguous sequence,
 session, and schema identity; its next sequence and persisted upload cursor are
@@ -162,6 +166,47 @@ checkpoint. A process or machine crash in the narrow interval after the jj
 transaction commits but before the event reaches the synced spool can still
 leave an unreferenced operation in the shadow repository; recovery does not yet
 reconstruct that pending event across coordinator restarts.
+
+## Postgres and CockroachDB storage
+
+Sessions can use a Postgres-wire-compatible database as their primary durable
+store, with S3 used only for large repository payloads:
+
+```sh
+export RRJJ_DATABASE_URL='postgresql://user:password@host:26257/database?sslmode=require'
+target/release/rrjj daemon \
+  --root /tmp/rrjj-work \
+  --shadow /tmp/rrjj-shadow \
+  --events /tmp/rrjj-spool.ndjson \
+  --socket /tmp/rrjj.sock \
+  --s3-bucket recordings \
+  --s3-prefix rrjj \
+  --s3-region us-east-1
+```
+
+`--database-url` is equivalent to `RRJJ_DATABASE_URL`; the environment variable
+avoids exposing credentials in the process list. rrjj creates the
+`rrjj_sessions`, `rrjj_events`, and `rrjj_objects` tables by default from
+`crates/rrjj-sinks/migrations/0001_sessions.sql`. Use
+`--database-sessions-table`, `--database-events-table`, and
+`--database-objects-table` (or the corresponding `RRJJ_DATABASE_*_TABLE`
+environment variables) to select different, optionally schema-qualified table
+names. rrjj safely quotes these identifiers; existing tables must follow the
+same column schema.
+
+Events, manifests, and repository payloads up to 1 MiB are stored directly in
+SQL. `--database-inline-object-max-bytes` changes that threshold. A larger
+payload is uploaded under the session's S3 prefix and its `rrjj_objects` row
+contains the S3 URI, region, and optional endpoint instead of inline bytes. No
+event stream, manifest, or small repository object is uploaded to S3 in this
+mode.
+
+Large S3 objects and SQL event/object rows are published before
+`rrjj_sessions.durable_seq` advances. Readers must not expose rows beyond that
+watermark. SQL publication currently occurs at explicit or shutdown flush
+boundaries. The filesystem reader commands do not yet resolve SQL-backed
+sessions directly; a control plane must reconstruct `store/repo` from
+`rrjj_objects` and the timeline from `rrjj_events`.
 
 ## SSE
 

@@ -13,7 +13,8 @@ use rrjj_core::{Config, CoordinatorHandle};
 use rrjj_reader::Session;
 use rrjj_schema::{FormatMetadata, SCHEMA_VERSION, SESSION_FORMAT_VERSION};
 use rrjj_sinks::{
-    BroadcastSink, DirectorySessionSink, NdjsonSink, S3SessionSink, S3SinkConfig, Sink,
+    BroadcastSink, DirectorySessionSink, NdjsonSink, PostgresIndexConfig, PostgresSessionSink,
+    PostgresSessionSinkConfig, S3SessionSink, S3SinkConfig, Sink,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -71,6 +72,30 @@ enum CliCommand {
         s3_region: String,
         #[arg(long)]
         s3_endpoint: Option<String>,
+        #[arg(long, env = "RRJJ_DATABASE_URL", hide_env_values = true)]
+        database_url: Option<String>,
+        #[arg(long, default_value_t = 2)]
+        database_max_connections: u32,
+        #[arg(
+            long,
+            env = "RRJJ_DATABASE_SESSIONS_TABLE",
+            default_value = "rrjj_sessions"
+        )]
+        database_sessions_table: String,
+        #[arg(
+            long,
+            env = "RRJJ_DATABASE_EVENTS_TABLE",
+            default_value = "rrjj_events"
+        )]
+        database_events_table: String,
+        #[arg(
+            long,
+            env = "RRJJ_DATABASE_OBJECTS_TABLE",
+            default_value = "rrjj_objects"
+        )]
+        database_objects_table: String,
+        #[arg(long, default_value_t = 1_048_576)]
+        database_inline_object_max_bytes: u64,
         #[arg(long)]
         http: Option<std::net::SocketAddr>,
         #[arg(long)]
@@ -164,6 +189,12 @@ async fn main() -> Result<()> {
             s3_prefix,
             s3_region,
             s3_endpoint,
+            database_url,
+            database_max_connections,
+            database_sessions_table,
+            database_events_table,
+            database_objects_table,
+            database_inline_object_max_bytes,
             http,
             cors_origin,
         } => {
@@ -183,6 +214,12 @@ async fn main() -> Result<()> {
                 s3_prefix,
                 s3_region,
                 s3_endpoint,
+                database_url,
+                database_max_connections,
+                database_sessions_table,
+                database_events_table,
+                database_objects_table,
+                database_inline_object_max_bytes,
                 http,
                 cors_origin,
             )
@@ -251,6 +288,12 @@ async fn run_daemon(
     s3_prefix: String,
     s3_region: String,
     s3_endpoint: Option<String>,
+    database_url: Option<String>,
+    database_max_connections: u32,
+    database_sessions_table: String,
+    database_events_table: String,
+    database_objects_table: String,
+    database_inline_object_max_bytes: u64,
     http: Option<std::net::SocketAddr>,
     cors_origin: Option<String>,
 ) -> Result<()> {
@@ -262,6 +305,14 @@ async fn run_daemon(
     ensure!(
         session_dir.is_none() || s3_bucket.is_none(),
         "--session-dir and --s3-bucket are mutually exclusive"
+    );
+    ensure!(
+        database_url.is_none() || s3_bucket.is_some(),
+        "--database-url requires --s3-bucket for large repository objects"
+    );
+    ensure!(
+        database_max_connections > 0,
+        "--database-max-connections must be greater than zero"
     );
     let http_listener = match http {
         Some(address) => Some((
@@ -300,8 +351,8 @@ async fn run_daemon(
             )
             .await?,
         ),
-        (None, Some(bucket)) => Arc::new(
-            S3SessionSink::create(S3SinkConfig {
+        (None, Some(bucket)) => {
+            let config = S3SinkConfig {
                 bucket,
                 prefix: s3_prefix,
                 region: s3_region,
@@ -309,10 +360,26 @@ async fn run_daemon(
                 spool_path: events.clone(),
                 max_spool_bytes,
                 session_id: session_id.clone(),
-                format,
-            })
-            .await?,
-        ),
+                format: format.clone(),
+            };
+            match database_url {
+                Some(database_url) => Arc::new(
+                    PostgresSessionSink::create(PostgresSessionSinkConfig {
+                        s3: config,
+                        database: PostgresIndexConfig {
+                            database_url,
+                            max_connections: database_max_connections,
+                            sessions_table: database_sessions_table,
+                            events_table: database_events_table,
+                            objects_table: database_objects_table,
+                        },
+                        inline_object_max_bytes: database_inline_object_max_bytes,
+                    })
+                    .await?,
+                ),
+                None => Arc::new(S3SessionSink::create(config).await?),
+            }
+        }
         (None, None) => Arc::new(NdjsonSink::create(&events).await?),
         (Some(_), Some(_)) => unreachable!("validated above"),
     };
