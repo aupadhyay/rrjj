@@ -20,8 +20,8 @@ homepage = "https://github.com/aupadhyay/rrjj"
 [workspace.dependencies]
 anyhow = "1"
 async-trait = "0.1"
-aws-config = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
-aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "rustls"] }
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
 aws-smithy-types = "1"
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
