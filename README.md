@@ -185,9 +185,16 @@ target/release/rrjj daemon \
 ```
 
 `--database-url` is equivalent to `RRJJ_DATABASE_URL`; the environment variable
-avoids exposing credentials in the process list. rrjj creates the
-`rrjj_sessions`, `rrjj_events`, and `rrjj_objects` tables by default from
-`crates/rrjj-sinks/migrations/0001_sessions.sql`. Use
+avoids exposing credentials in the process list. Database schema mode defaults
+to `validate`: rrjj executes no DDL and refuses to start unless the configured
+tables have the required columns, types, nullability, defaults, and primary
+keys. Host applications can apply the versioned
+[`schema/postgres/v1.sql`](schema/postgres/v1.sql) schema through their own
+migration system.
+
+For standalone use, `--database-schema-mode=create` (or
+`RRJJ_DATABASE_SCHEMA_MODE=create`) retains the table-creation behavior and
+validates the result. Use
 `--database-sessions-table`, `--database-events-table`, and
 `--database-objects-table` (or the corresponding `RRJJ_DATABASE_*_TABLE`
 environment variables) to select different, optionally schema-qualified table

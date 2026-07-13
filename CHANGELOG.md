@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Read-only database schema validation mode and a versioned PostgreSQL/
+  CockroachDB schema for host-managed migrations.
+
 ## [0.1.0] - 2026-07-11
 
 ### Added

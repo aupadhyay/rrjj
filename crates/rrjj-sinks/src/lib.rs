@@ -15,6 +15,7 @@ use rrjj_schema::{
     Event, EventBody, FormatMetadata, SessionManifest, StoragePointer, StoragePointers,
 };
 use sha2::{Digest as _, Sha256};
+use sqlx::Row as _;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use thiserror::Error;
 use tokio::fs::{File, OpenOptions};
@@ -133,6 +134,13 @@ pub struct PostgresIndexConfig {
     pub sessions_table: String,
     pub events_table: String,
     pub objects_table: String,
+    pub schema_mode: DatabaseSchemaMode,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DatabaseSchemaMode {
+    Create,
+    Validate,
 }
 
 pub struct PostgresSessionIndex {
@@ -282,10 +290,13 @@ impl PostgresSessionIndex {
             .max_connections(config.max_connections.max(1))
             .connect(&config.database_url)
             .await?;
-        // The only dynamic fragments are identifiers escaped by `quote_identifier`.
-        sqlx::raw_sql(sqlx::AssertSqlSafe(migration))
-            .execute(&pool)
-            .await?;
+        if config.schema_mode == DatabaseSchemaMode::Create {
+            // The only dynamic fragments are identifiers escaped by `quote_identifier`.
+            sqlx::raw_sql(sqlx::AssertSqlSafe(migration))
+                .execute(&pool)
+                .await?;
+        }
+        validate_database_schema(&pool, &config).await?;
         Ok(Self {
             pool,
             sessions_table,
@@ -316,6 +327,299 @@ fn quote_identifier(identifier: &str) -> Result<String, SinkError> {
         )));
     }
     Ok(format!("\"{}\"", identifier.replace('"', "\"\"")))
+}
+
+#[derive(Clone, Copy)]
+struct ExpectedColumn {
+    name: &'static str,
+    data_type: &'static str,
+    nullable: bool,
+    requires_default: bool,
+}
+
+struct ExpectedTable<'a> {
+    configured_name: &'a str,
+    columns: &'static [ExpectedColumn],
+    primary_key: &'static [&'static str],
+}
+
+const SESSION_COLUMNS: &[ExpectedColumn] = &[
+    ExpectedColumn {
+        name: "session_id",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "format",
+        data_type: "jsonb",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "manifest",
+        data_type: "jsonb",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "durable_seq",
+        data_type: "bigint",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "durable_op",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "created_at",
+        data_type: "timestamp with time zone",
+        nullable: false,
+        requires_default: true,
+    },
+    ExpectedColumn {
+        name: "updated_at",
+        data_type: "timestamp with time zone",
+        nullable: false,
+        requires_default: true,
+    },
+];
+
+const EVENT_COLUMNS: &[ExpectedColumn] = &[
+    ExpectedColumn {
+        name: "session_id",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "seq",
+        data_type: "bigint",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "timestamp",
+        data_type: "timestamp with time zone",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "event_type",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "event",
+        data_type: "jsonb",
+        nullable: false,
+        requires_default: false,
+    },
+];
+
+const OBJECT_COLUMNS: &[ExpectedColumn] = &[
+    ExpectedColumn {
+        name: "session_id",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "path",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "sha256",
+        data_type: "text",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "size",
+        data_type: "bigint",
+        nullable: false,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "inline_bytes",
+        data_type: "bytea",
+        nullable: true,
+        requires_default: false,
+    },
+    ExpectedColumn {
+        name: "storage",
+        data_type: "jsonb",
+        nullable: true,
+        requires_default: false,
+    },
+];
+
+async fn validate_database_schema(
+    pool: &PgPool,
+    config: &PostgresIndexConfig,
+) -> Result<(), SinkError> {
+    for table in [
+        ExpectedTable {
+            configured_name: &config.sessions_table,
+            columns: SESSION_COLUMNS,
+            primary_key: &["session_id"],
+        },
+        ExpectedTable {
+            configured_name: &config.events_table,
+            columns: EVENT_COLUMNS,
+            primary_key: &["session_id", "seq"],
+        },
+        ExpectedTable {
+            configured_name: &config.objects_table,
+            columns: OBJECT_COLUMNS,
+            primary_key: &["session_id", "path"],
+        },
+    ] {
+        validate_table(pool, table).await?;
+    }
+    Ok(())
+}
+
+async fn validate_table(pool: &PgPool, expected: ExpectedTable<'_>) -> Result<(), SinkError> {
+    let (schema, table) = table_name_parts(expected.configured_name)?;
+    let exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = COALESCE($1, current_schema())
+              AND table_name = $2
+              AND table_type = 'BASE TABLE'
+        )
+        "#,
+    )
+    .bind(schema.as_deref())
+    .bind(&table)
+    .fetch_one(pool)
+    .await?;
+    if !exists {
+        return Err(SinkError::InvalidConfig(format!(
+            "database table {:?} does not exist; apply schema/postgres/v1.sql or use --database-schema-mode=create",
+            expected.configured_name
+        )));
+    }
+
+    let rows = sqlx::query(
+        r#"
+        SELECT column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_schema = COALESCE($1, current_schema())
+          AND table_name = $2
+        ORDER BY ordinal_position
+        "#,
+    )
+    .bind(schema.as_deref())
+    .bind(&table)
+    .fetch_all(pool)
+    .await?;
+    let actual = rows
+        .into_iter()
+        .map(|row| {
+            let name = row.try_get::<String, _>("column_name")?;
+            let data_type = row.try_get::<String, _>("data_type")?;
+            let nullable = row.try_get::<String, _>("is_nullable")? == "YES";
+            let default = row.try_get::<Option<String>, _>("column_default")?;
+            Ok((name, (data_type, nullable, default)))
+        })
+        .collect::<Result<BTreeMap<_, _>, sqlx::Error>>()?;
+    let expected_names = expected
+        .columns
+        .iter()
+        .map(|column| column.name)
+        .collect::<BTreeSet<_>>();
+    let mut mismatches = Vec::new();
+    for column in expected.columns {
+        match actual.get(column.name) {
+            None => mismatches.push(format!("missing column {}", column.name)),
+            Some((data_type, nullable, default)) => {
+                if data_type != column.data_type {
+                    mismatches.push(format!(
+                        "column {} has type {}, expected {}",
+                        column.name, data_type, column.data_type
+                    ));
+                }
+                if *nullable != column.nullable {
+                    mismatches.push(format!(
+                        "column {} nullable={}, expected {}",
+                        column.name, nullable, column.nullable
+                    ));
+                }
+                if column.requires_default && default.is_none() {
+                    mismatches.push(format!("column {} requires a default", column.name));
+                }
+            }
+        }
+    }
+    for name in actual.keys() {
+        if !expected_names.contains(name.as_str()) {
+            mismatches.push(format!("unexpected column {name}"));
+        }
+    }
+
+    let primary_key = sqlx::query_scalar::<_, String>(
+        r#"
+        SELECT kcu.column_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu
+          ON tc.constraint_catalog = kcu.constraint_catalog
+         AND tc.constraint_schema = kcu.constraint_schema
+         AND tc.constraint_name = kcu.constraint_name
+        WHERE tc.table_schema = COALESCE($1, current_schema())
+          AND tc.table_name = $2
+          AND tc.constraint_type = 'PRIMARY KEY'
+        ORDER BY kcu.ordinal_position
+        "#,
+    )
+    .bind(schema.as_deref())
+    .bind(&table)
+    .fetch_all(pool)
+    .await?;
+    if primary_key != expected.primary_key {
+        mismatches.push(format!(
+            "primary key is ({}) but must be ({})",
+            primary_key.join(", "),
+            expected.primary_key.join(", ")
+        ));
+    }
+
+    if mismatches.is_empty() {
+        Ok(())
+    } else {
+        Err(SinkError::InvalidConfig(format!(
+            "database table {:?} is incompatible: {}",
+            expected.configured_name,
+            mismatches.join("; ")
+        )))
+    }
+}
+
+fn table_name_parts(name: &str) -> Result<(Option<String>, String), SinkError> {
+    let parts = name.split('.').collect::<Vec<_>>();
+    match parts.as_slice() {
+        [table] => {
+            quote_identifier(table)?;
+            Ok((None, (*table).into()))
+        }
+        [schema, table] => {
+            quote_identifier(schema)?;
+            quote_identifier(table)?;
+            Ok((Some((*schema).into()), (*table).into()))
+        }
+        _ => Err(SinkError::InvalidConfig(format!(
+            "database table name must be `table` or `schema.table`: {name:?}"
+        ))),
+    }
 }
 
 fn events_timestamp_index_name(events_table: &str) -> String {
@@ -2140,6 +2444,7 @@ mod tests {
             sessions_table: "public.rrjj test sessions".into(),
             events_table: "public.rrjj test events".into(),
             objects_table: "public.rrjj test objects".into(),
+            schema_mode: DatabaseSchemaMode::Create,
         })
         .await
         .unwrap();
@@ -2233,6 +2538,128 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn postgres_schema_modes_validate_without_ddl_and_reject_incompatible_tables() {
+        let Ok(database_url) = std::env::var("RRJJ_TEST_DATABASE_URL") else {
+            return;
+        };
+        let suffix = std::process::id();
+        let config = PostgresIndexConfig {
+            database_url,
+            max_connections: 1,
+            sessions_table: format!("rrjj_schema_mode_{suffix}_sessions"),
+            events_table: format!("rrjj_schema_mode_{suffix}_events"),
+            objects_table: format!("rrjj_schema_mode_{suffix}_objects"),
+            schema_mode: DatabaseSchemaMode::Create,
+        };
+        let created = PostgresSessionIndex::connect(config.clone()).await.unwrap();
+
+        PostgresSessionIndex::connect(PostgresIndexConfig {
+            schema_mode: DatabaseSchemaMode::Validate,
+            ..config.clone()
+        })
+        .await
+        .unwrap();
+
+        let missing_table = format!("rrjj_schema_mode_{suffix}_missing_sessions");
+        let error = PostgresSessionIndex::connect(PostgresIndexConfig {
+            sessions_table: missing_table.clone(),
+            schema_mode: DatabaseSchemaMode::Validate,
+            ..config.clone()
+        })
+        .await
+        .err()
+        .expect("validate mode should reject a missing table");
+        assert!(
+            error.to_string().contains("does not exist"),
+            "unexpected error: {error}"
+        );
+        let table_count: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = current_schema() AND table_name = $1
+            "#,
+        )
+        .bind(&missing_table)
+        .fetch_one(&created.pool)
+        .await
+        .unwrap();
+        assert_eq!(table_count, 0, "validate mode must not create tables");
+
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "ALTER TABLE {} DROP COLUMN manifest",
+            created.sessions_table
+        )))
+        .execute(&created.pool)
+        .await
+        .unwrap();
+        let error = PostgresSessionIndex::connect(PostgresIndexConfig {
+            schema_mode: DatabaseSchemaMode::Validate,
+            ..config.clone()
+        })
+        .await
+        .err()
+        .expect("validate mode should reject an incompatible table");
+        assert!(
+            error.to_string().contains("missing column manifest"),
+            "unexpected error: {error}"
+        );
+
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+            "DROP TABLE IF EXISTS {}, {}, {} CASCADE",
+            created.sessions_table, created.events_table, created.objects_table
+        )))
+        .execute(&created.pool)
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn postgres_published_v1_schema_is_accepted_in_validate_mode() {
+        let Ok(database_url) = std::env::var("RRJJ_TEST_DATABASE_URL") else {
+            return;
+        };
+        let suffix = std::process::id();
+        let sessions_table = format!("rrjj_host_{suffix}_sessions");
+        let events_table = format!("rrjj_host_{suffix}_events");
+        let objects_table = format!("rrjj_host_{suffix}_objects");
+        let schema = include_str!("../../../schema/postgres/v1.sql")
+            .replace("rrjj_sessions", &sessions_table)
+            .replace("rrjj_events", &events_table)
+            .replace("rrjj_objects", &objects_table);
+        let pool = PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&database_url)
+            .await
+            .unwrap();
+        sqlx::raw_sql(sqlx::AssertSqlSafe(schema))
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        PostgresSessionIndex::connect(PostgresIndexConfig {
+            database_url,
+            max_connections: 1,
+            sessions_table: sessions_table.clone(),
+            events_table: events_table.clone(),
+            objects_table: objects_table.clone(),
+            schema_mode: DatabaseSchemaMode::Validate,
+        })
+        .await
+        .unwrap();
+
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+            "DROP TABLE IF EXISTS {}, {}, {} CASCADE",
+            quote_table_name(&sessions_table).unwrap(),
+            quote_table_name(&events_table).unwrap(),
+            quote_table_name(&objects_table).unwrap()
+        )))
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
     async fn postgres_session_keeps_small_objects_inline_and_uploads_only_large_objects() {
         use aws_config::retry::RetryConfig;
         use aws_sdk_s3::config::{Credentials, Region};
@@ -2291,6 +2718,7 @@ mod tests {
                 sessions_table: format!("rrjj_tiered_sessions_{table_suffix}"),
                 events_table: format!("rrjj_tiered_events_{table_suffix}"),
                 objects_table: format!("rrjj_tiered_objects_{table_suffix}"),
+                schema_mode: DatabaseSchemaMode::Create,
             },
             inline_object_max_bytes: 4,
         };

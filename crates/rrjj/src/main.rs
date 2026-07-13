@@ -8,13 +8,13 @@ use axum::extract::State;
 use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
 use axum::response::{Html, IntoResponse, Response as HttpResponse};
 use axum::routing::get;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use rrjj_core::{Config, CoordinatorHandle};
 use rrjj_reader::Session;
 use rrjj_schema::{FormatMetadata, SCHEMA_VERSION, SESSION_FORMAT_VERSION};
 use rrjj_sinks::{
-    BroadcastSink, DirectorySessionSink, NdjsonSink, PostgresIndexConfig, PostgresSessionSink,
-    PostgresSessionSinkConfig, S3SessionSink, S3SinkConfig, Sink,
+    BroadcastSink, DatabaseSchemaMode, DirectorySessionSink, NdjsonSink, PostgresIndexConfig,
+    PostgresSessionSink, PostgresSessionSinkConfig, S3SessionSink, S3SinkConfig, Sink,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -33,6 +33,21 @@ use uuid::Uuid;
 struct Args {
     #[command(subcommand)]
     command: CliCommand,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DatabaseSchemaModeArg {
+    Create,
+    Validate,
+}
+
+impl From<DatabaseSchemaModeArg> for DatabaseSchemaMode {
+    fn from(value: DatabaseSchemaModeArg) -> Self {
+        match value {
+            DatabaseSchemaModeArg::Create => Self::Create,
+            DatabaseSchemaModeArg::Validate => Self::Validate,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -94,6 +109,13 @@ enum CliCommand {
             default_value = "rrjj_objects"
         )]
         database_objects_table: String,
+        #[arg(
+            long,
+            env = "RRJJ_DATABASE_SCHEMA_MODE",
+            value_enum,
+            default_value = "validate"
+        )]
+        database_schema_mode: DatabaseSchemaModeArg,
         #[arg(long, default_value_t = 1_048_576)]
         database_inline_object_max_bytes: u64,
         #[arg(long)]
@@ -194,6 +216,7 @@ async fn main() -> Result<()> {
             database_sessions_table,
             database_events_table,
             database_objects_table,
+            database_schema_mode,
             database_inline_object_max_bytes,
             http,
             cors_origin,
@@ -219,6 +242,7 @@ async fn main() -> Result<()> {
                 database_sessions_table,
                 database_events_table,
                 database_objects_table,
+                database_schema_mode,
                 database_inline_object_max_bytes,
                 http,
                 cors_origin,
@@ -293,6 +317,7 @@ async fn run_daemon(
     database_sessions_table: String,
     database_events_table: String,
     database_objects_table: String,
+    database_schema_mode: DatabaseSchemaModeArg,
     database_inline_object_max_bytes: u64,
     http: Option<std::net::SocketAddr>,
     cors_origin: Option<String>,
@@ -372,6 +397,7 @@ async fn run_daemon(
                             sessions_table: database_sessions_table,
                             events_table: database_events_table,
                             objects_table: database_objects_table,
+                            schema_mode: database_schema_mode.into(),
                         },
                         inline_object_max_bytes: database_inline_object_max_bytes,
                     })
