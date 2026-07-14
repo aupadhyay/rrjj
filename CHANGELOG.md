@@ -9,8 +9,24 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Read-only database schema validation mode and a versioned PostgreSQL/
-  CockroachDB schema for host-managed migrations.
+- Composable Git checkpoint and HTTP event sinks coordinated by a durable
+  session flush path.
+- Recorder-owned Git refs under `refs/rrjj/sessions/<session-id>` with
+  compare-and-swap publication and Authorization via
+  `RRJJ_GIT_AUTHORIZATION`.
+- Authenticated HTTP event batches with contiguous sequence publication,
+  acknowledgements, retries, and Authorization via
+  `RRJJ_EVENT_HTTP_AUTHORIZATION`.
+
+### Changed
+
+- Durable storage is now modeled as two outputs: checkpoint content and
+  timeline events. Local `--session-dir` remains the standalone backend.
+
+### Removed
+
+- S3 and Postgres/Cockroach session backends and their CLI/database schema
+  packaging. Pre-1.0 remote users should migrate to Git + HTTP.
 
 ## [0.1.0] - 2026-07-11
 

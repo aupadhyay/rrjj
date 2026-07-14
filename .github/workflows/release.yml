@@ -48,10 +48,9 @@ jobs:
           set -euxo pipefail
           version="${GITHUB_REF_NAME#v}"
           archive="rrjj-${version}-${TARGET}"
-          mkdir -p "dist/${archive}/schema/postgres"
+          mkdir -p "dist/${archive}/schema"
           cp "target/${TARGET}/release/rrjj" README.md CHANGELOG.md LICENSE "dist/${archive}/"
           cp schema/v0.md "dist/${archive}/schema/"
-          cp schema/postgres/README.md schema/postgres/v1.sql "dist/${archive}/schema/postgres/"
           tar -C dist -czf "dist/${archive}.tar.gz" "${archive}"
           rm -rf "dist/${archive}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

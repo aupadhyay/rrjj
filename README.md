@@ -20,14 +20,31 @@ durable session layout, and jj storage compatibility may change before 1.0.
 ```text
 workload → native watcher → debounce/overflow recovery → jj tree checkpoint
                               │                         │
-                              └→ touched-path events    ├→ NDJSON/SSE
-                                                        ├→ local or S3 session
-                                                        └→ Postgres/Cockroach
-                                                            ├→ events + small repository payloads
-                                                            └→ S3 for large payloads only
+                              └→ touched-path events    ├→ synced local event journal
+                                                        ├→ checkpoint sink (local dir or Git remote)
+                                                        └→ event sink (local dir or HTTP)
 
 durable events + store → rrjj reader → index / inspect / diff / materialize
 ```
+
+rrjj has two durable outputs:
+
+1. **Checkpoint content** — reconstructable filesystem state. Local mode syncs
+   the shadow jj/Git store into `--session-dir`. Remote mode publishes Git
+   objects to a recorder-owned ref on a Git smart-HTTP remote.
+2. **Timeline events** — ordered, versioned marks/snapshots/overflows/flushes.
+   Local mode writes immutable NDJSON under the session directory. Remote mode
+   posts contiguous batches to an authenticated HTTP endpoint.
+
+Capture, watching, debounce, spooling, and jj checkpoint generation stay
+independent of the selected sinks. A flush succeeds only after checkpoint
+content and the corresponding event prefix are durable. Git publication always
+precedes event durability: a snapshot event must never name unavailable Git
+content. An orphaned Git ref without an acknowledged event is acceptable until
+retry converges.
+
+The Git server owns object storage, scaling, retention, and garbage collection.
+rrjj owns capture, sequencing, retry, and cross-sink flush semantics.
 
 The shadow directory contains jj metadata and must be outside the watched
 root. The watched tree receives no `.jj` directory. Normal watcher activity
@@ -86,9 +103,10 @@ target/release/rrjj daemon \
 ```
 
 Use a fresh/empty shadow directory for each daemon. `--session-dir` publishes a
-directory-shaped durable session. Without it or S3 options, only the bounded
-NDJSON spool is written. `SIGINT` and `SIGTERM` trigger a final checkpoint,
-`session_end`, durable flush, and control-socket cleanup.
+directory-shaped durable session (local checkpoint + local events). Without it
+or remote backends, only the bounded NDJSON spool is written. `SIGINT` and
+`SIGTERM` trigger a final checkpoint, `session_end`, durable flush, and
+control-socket cleanup.
 
 Local publication copies only `shadow/repo`, because readers initialize
 `session/store/repo` directly and do not use the shadow's `working-copy-*`
@@ -128,37 +146,59 @@ checkpointing until resume. `--quiescence-ms`, `--max-delay-ms`, and repeated
 `--ignore <glob>` options tune capture. `.git`, `.jj`, the shadow, spool,
 session, and socket paths are always excluded.
 
-## S3
+## Git + HTTP remotes
+
+Publish checkpoint content to a Git remote and timeline events to an HTTP
+endpoint:
 
 ```sh
+export RRJJ_GIT_AUTHORIZATION='Bearer ...'
+export RRJJ_EVENT_HTTP_AUTHORIZATION='Bearer ...'
 target/release/rrjj daemon \
   --root /tmp/rrjj-work \
   --shadow /tmp/rrjj-shadow \
   --events /tmp/rrjj-spool.ndjson \
   --socket /tmp/rrjj.sock \
-  --s3-bucket recordings \
-  --s3-prefix rrjj \
-  --s3-region us-east-1
+  --session-id SESSION_ID \
+  --checkpoint-backend git \
+  --git-remote-url https://example.com/recording.git \
+  --git-ref-prefix refs/rrjj/sessions \
+  --event-backend http \
+  --event-http-url https://example.com/recordings/SESSION_ID/events
 ```
 
-The AWS SDK credential chain is used (environment variables, shared profiles,
-or workload identity). Add `--s3-endpoint http://127.0.0.1:9000` for MinIO.
-Each event is appended and synced to the bounded local spool before it is
-accepted by the coordinator or published to SSE. An ordered background worker
-uploads immutable live objects at
-`<prefix>/<session-id>/live/<20-digit-seq>.json`, retrying the same key with
-backoff after transient failures. A flush waits for live upload through its
-target sequence, uploads changed store objects and an immutable versioned
-NDJSON object, then publishes `manifest.json` with the NDJSON object pointer and
-durability watermark last. S3 manifests also contain `storage` URIs for
-the session root, manifest, jj store, and current immutable event object.
+Secrets stay in environment variables (`RRJJ_GIT_AUTHORIZATION`,
+`RRJJ_EVENT_HTTP_AUTHORIZATION`) and are never accepted as CLI flags. The Git
+sink pushes only recorder-owned refs under `--git-ref-prefix`
+(default `refs/rrjj/sessions/<session-id>`). It never mutates `refs/heads/*`.
 
-On restart, an existing S3 spool is parsed and checked for contiguous sequence,
-session, and schema identity; its next sequence and persisted upload cursor are
-restored. An incompatible or partial spool is rejected instead of being
-appended to. Capture continues without S3 network availability while the local
-spool has room. Exceeding `--max-spool-bytes` is a fatal local capture condition
-reported by the daemon, not a successfully buffered event.
+Each flush:
+
+1. Accepts events into the synced local spool.
+2. Publishes the checkpoint Git object closure.
+3. Advances the recorder-owned Git ref with compare-and-swap semantics.
+4. Posts contiguous event batches, including the snapshot commit OID.
+5. Advances the durable watermark only after the HTTP acknowledgement.
+
+The HTTP body preserves rrjj's versioned events:
+
+```json
+{
+  "schema_version": 0,
+  "session_id": "...",
+  "events": [{ "v": 0, "seq": 42, "type": "snapshot", "data": { "commit": "c:...", "...": "..." } }],
+  "durable": { "seq": 42, "op": "op:...", "checkpoint": "<git oid>" }
+}
+```
+
+Receivers should acknowledge with `accepted_through_seq` and, for final durable
+batches, `durable_through_seq`. Transient `5xx`/`429`/network failures retry
+with backoff. `409` is success only when the acknowledgement proves the same
+prefix is already present. Other `4xx` responses are permanent failures. Events
+remain in the local spool until acknowledged.
+
+S3 and Postgres/Cockroach session backends were removed before 1.0 in favor of
+this Git + HTTP model. Local `--session-dir` remains the standalone backend.
 
 If jj commits a checkpoint but local event acceptance fails, the running
 coordinator retains and retries that exact snapshot event before taking another
@@ -166,54 +206,6 @@ checkpoint. A process or machine crash in the narrow interval after the jj
 transaction commits but before the event reaches the synced spool can still
 leave an unreferenced operation in the shadow repository; recovery does not yet
 reconstruct that pending event across coordinator restarts.
-
-## Postgres and CockroachDB storage
-
-Sessions can use a Postgres-wire-compatible database as their primary durable
-store, with S3 used only for large repository payloads:
-
-```sh
-export RRJJ_DATABASE_URL='postgresql://user:password@host:26257/database?sslmode=require'
-target/release/rrjj daemon \
-  --root /tmp/rrjj-work \
-  --shadow /tmp/rrjj-shadow \
-  --events /tmp/rrjj-spool.ndjson \
-  --socket /tmp/rrjj.sock \
-  --s3-bucket recordings \
-  --s3-prefix rrjj \
-  --s3-region us-east-1
-```
-
-`--database-url` is equivalent to `RRJJ_DATABASE_URL`; the environment variable
-avoids exposing credentials in the process list. Database schema mode defaults
-to `validate`: rrjj executes no DDL and refuses to start unless the configured
-tables have the required columns, types, nullability, defaults, and primary
-keys. Host applications can apply the versioned
-[`schema/postgres/v1.sql`](schema/postgres/v1.sql) schema through their own
-migration system.
-
-For standalone use, `--database-schema-mode=create` (or
-`RRJJ_DATABASE_SCHEMA_MODE=create`) retains the table-creation behavior and
-validates the result. Use
-`--database-sessions-table`, `--database-events-table`, and
-`--database-objects-table` (or the corresponding `RRJJ_DATABASE_*_TABLE`
-environment variables) to select different, optionally schema-qualified table
-names. rrjj safely quotes these identifiers; existing tables must follow the
-same column schema.
-
-Events, manifests, and repository payloads up to 1 MiB are stored directly in
-SQL. `--database-inline-object-max-bytes` changes that threshold. A larger
-payload is uploaded under the session's S3 prefix and its `rrjj_objects` row
-contains the S3 URI, region, and optional endpoint instead of inline bytes. No
-event stream, manifest, or small repository object is uploaded to S3 in this
-mode.
-
-Large S3 objects and SQL event/object rows are published before
-`rrjj_sessions.durable_seq` advances. Readers must not expose rows beyond that
-watermark. SQL publication currently occurs at explicit or shutdown flush
-boundaries. The filesystem reader commands do not yet resolve SQL-backed
-sessions directly; a control plane must reconstruct `store/repo` from
-`rrjj_objects` and the timeline from `rrjj_events`.
 
 ## SSE
 

@@ -13,8 +13,8 @@ use rrjj_core::{Config, CoordinatorHandle};
 use rrjj_reader::Session;
 use rrjj_schema::{FormatMetadata, SCHEMA_VERSION, SESSION_FORMAT_VERSION};
 use rrjj_sinks::{
-    BroadcastSink, DatabaseSchemaMode, DirectorySessionSink, NdjsonSink, PostgresIndexConfig,
-    PostgresSessionSink, PostgresSessionSinkConfig, S3SessionSink, S3SinkConfig, Sink,
+    BroadcastSink, DirectorySessionSink, DurableSessionSink, GitCheckpointConfig,
+    GitCheckpointSink, HttpEventConfig, HttpEventSink, NdjsonSink, Sink,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -36,18 +36,16 @@ struct Args {
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
-enum DatabaseSchemaModeArg {
-    Create,
-    Validate,
+enum CheckpointBackend {
+    Local,
+    Git,
 }
 
-impl From<DatabaseSchemaModeArg> for DatabaseSchemaMode {
-    fn from(value: DatabaseSchemaModeArg) -> Self {
-        match value {
-            DatabaseSchemaModeArg::Create => Self::Create,
-            DatabaseSchemaModeArg::Validate => Self::Validate,
-        }
-    }
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum EventBackend {
+    Local,
+    Http,
+    None,
 }
 
 #[derive(Debug, Subcommand)]
@@ -79,45 +77,20 @@ enum CliCommand {
         max_delay_ms: u64,
         #[arg(long = "ignore")]
         ignore: Vec<String>,
-        #[arg(long)]
-        s3_bucket: Option<String>,
-        #[arg(long, default_value = "rrjj")]
-        s3_prefix: String,
-        #[arg(long, default_value = "us-east-1")]
-        s3_region: String,
-        #[arg(long)]
-        s3_endpoint: Option<String>,
-        #[arg(long, env = "RRJJ_DATABASE_URL", hide_env_values = true)]
-        database_url: Option<String>,
-        #[arg(long, default_value_t = 2)]
-        database_max_connections: u32,
-        #[arg(
-            long,
-            env = "RRJJ_DATABASE_SESSIONS_TABLE",
-            default_value = "rrjj_sessions"
-        )]
-        database_sessions_table: String,
-        #[arg(
-            long,
-            env = "RRJJ_DATABASE_EVENTS_TABLE",
-            default_value = "rrjj_events"
-        )]
-        database_events_table: String,
-        #[arg(
-            long,
-            env = "RRJJ_DATABASE_OBJECTS_TABLE",
-            default_value = "rrjj_objects"
-        )]
-        database_objects_table: String,
-        #[arg(
-            long,
-            env = "RRJJ_DATABASE_SCHEMA_MODE",
-            value_enum,
-            default_value = "validate"
-        )]
-        database_schema_mode: DatabaseSchemaModeArg,
+        #[arg(long, value_enum)]
+        checkpoint_backend: Option<CheckpointBackend>,
+        #[arg(long, value_enum)]
+        event_backend: Option<EventBackend>,
+        #[arg(long, env = "RRJJ_GIT_REMOTE_URL")]
+        git_remote_url: Option<String>,
+        #[arg(long, default_value = "refs/rrjj/sessions")]
+        git_ref_prefix: String,
+        #[arg(long, env = "RRJJ_EVENT_HTTP_URL")]
+        event_http_url: Option<String>,
+        #[arg(long, default_value_t = 100)]
+        event_max_batch_events: usize,
         #[arg(long, default_value_t = 1_048_576)]
-        database_inline_object_max_bytes: u64,
+        event_max_batch_bytes: usize,
         #[arg(long)]
         http: Option<std::net::SocketAddr>,
         #[arg(long)]
@@ -207,46 +180,38 @@ async fn main() -> Result<()> {
             quiescence_ms,
             max_delay_ms,
             ignore,
-            s3_bucket,
-            s3_prefix,
-            s3_region,
-            s3_endpoint,
-            database_url,
-            database_max_connections,
-            database_sessions_table,
-            database_events_table,
-            database_objects_table,
-            database_schema_mode,
-            database_inline_object_max_bytes,
+            checkpoint_backend,
+            event_backend,
+            git_remote_url,
+            git_ref_prefix,
+            event_http_url,
+            event_max_batch_events,
+            event_max_batch_bytes,
             http,
             cors_origin,
         } => {
-            run_daemon(
+            run_daemon(DaemonOptions {
                 root,
                 shadow,
                 events,
                 session_dir,
                 socket,
-                session_id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+                session_id: session_id.unwrap_or_else(|| Uuid::new_v4().to_string()),
                 max_changes,
                 max_spool_bytes,
                 quiescence_ms,
                 max_delay_ms,
                 ignore,
-                s3_bucket,
-                s3_prefix,
-                s3_region,
-                s3_endpoint,
-                database_url,
-                database_max_connections,
-                database_sessions_table,
-                database_events_table,
-                database_objects_table,
-                database_schema_mode,
-                database_inline_object_max_bytes,
+                checkpoint_backend,
+                event_backend,
+                git_remote_url,
+                git_ref_prefix,
+                event_http_url,
+                event_max_batch_events,
+                event_max_batch_bytes,
                 http,
                 cors_origin,
-            )
+            })
             .await
         }
         CliCommand::Status { socket } => request(&socket, Request::Status).await,
@@ -292,11 +257,7 @@ async fn main() -> Result<()> {
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "daemon arguments map directly to the public CLI surface"
-)]
-async fn run_daemon(
+struct DaemonOptions {
     root: PathBuf,
     shadow: PathBuf,
     events: PathBuf,
@@ -308,38 +269,86 @@ async fn run_daemon(
     quiescence_ms: u64,
     max_delay_ms: u64,
     ignore: Vec<String>,
-    s3_bucket: Option<String>,
-    s3_prefix: String,
-    s3_region: String,
-    s3_endpoint: Option<String>,
-    database_url: Option<String>,
-    database_max_connections: u32,
-    database_sessions_table: String,
-    database_events_table: String,
-    database_objects_table: String,
-    database_schema_mode: DatabaseSchemaModeArg,
-    database_inline_object_max_bytes: u64,
+    checkpoint_backend: Option<CheckpointBackend>,
+    event_backend: Option<EventBackend>,
+    git_remote_url: Option<String>,
+    git_ref_prefix: String,
+    event_http_url: Option<String>,
+    event_max_batch_events: usize,
+    event_max_batch_bytes: usize,
     http: Option<std::net::SocketAddr>,
     cors_origin: Option<String>,
-) -> Result<()> {
-    ensure!(max_changes > 0, "--max-changes must be greater than zero");
+}
+
+async fn run_daemon(options: DaemonOptions) -> Result<()> {
     ensure!(
-        quiescence_ms > 0 && max_delay_ms > 0,
+        options.max_changes > 0,
+        "--max-changes must be greater than zero"
+    );
+    ensure!(
+        options.quiescence_ms > 0 && options.max_delay_ms > 0,
         "watch delays must be greater than zero"
     );
     ensure!(
-        session_dir.is_none() || s3_bucket.is_none(),
-        "--session-dir and --s3-bucket are mutually exclusive"
+        options.event_max_batch_events > 0,
+        "--event-max-batch-events must be greater than zero"
     );
     ensure!(
-        database_url.is_none() || s3_bucket.is_some(),
-        "--database-url requires --s3-bucket for large repository objects"
+        options.event_max_batch_bytes > 0,
+        "--event-max-batch-bytes must be greater than zero"
     );
-    ensure!(
-        database_max_connections > 0,
-        "--database-max-connections must be greater than zero"
-    );
-    let http_listener = match http {
+
+    let checkpoint_backend = options.checkpoint_backend.or_else(|| {
+        if options.session_dir.is_some() {
+            Some(CheckpointBackend::Local)
+        } else if options.git_remote_url.is_some() {
+            Some(CheckpointBackend::Git)
+        } else {
+            None
+        }
+    });
+    let event_backend = options.event_backend.or_else(|| {
+        if options.session_dir.is_some() {
+            Some(EventBackend::Local)
+        } else if options.event_http_url.is_some() {
+            Some(EventBackend::Http)
+        } else {
+            Some(EventBackend::None)
+        }
+    });
+
+    match (checkpoint_backend, event_backend) {
+        (Some(CheckpointBackend::Local), Some(EventBackend::Local)) => {
+            ensure!(
+                options.session_dir.is_some(),
+                "--session-dir is required for local checkpoint/event backends"
+            );
+        }
+        (Some(CheckpointBackend::Git), Some(EventBackend::Http)) => {
+            ensure!(
+                options.git_remote_url.is_some(),
+                "--git-remote-url or RRJJ_GIT_REMOTE_URL is required for the git checkpoint backend"
+            );
+            ensure!(
+                options.event_http_url.is_some(),
+                "--event-http-url or RRJJ_EVENT_HTTP_URL is required for the http event backend"
+            );
+        }
+        (None, Some(EventBackend::None)) => {}
+        (Some(CheckpointBackend::Local), Some(EventBackend::None))
+        | (None, Some(EventBackend::Local)) => {
+            return Err(anyhow!(
+                "local backends must be used together via --session-dir"
+            ));
+        }
+        _ => {
+            return Err(anyhow!(
+                "supported durable modes are: local (--session-dir), git+http, or spool-only"
+            ));
+        }
+    }
+
+    let http_listener = match options.http {
         Some(address) => Some((
             address,
             tokio::net::TcpListener::bind(address)
@@ -348,16 +357,16 @@ async fn run_daemon(
         )),
         None => None,
     };
-    if let Some(parent) = shadow.parent() {
+    if let Some(parent) = options.shadow.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    if let Some(parent) = events.parent() {
+    if let Some(parent) = options.events.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    if let Some(parent) = socket.parent() {
+    if let Some(parent) = options.socket.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    remove_stale_socket(&socket).await?;
+    remove_stale_socket(&options.socket).await?;
     let format = FormatMetadata {
         session_format: SESSION_FORMAT_VERSION,
         schema_version: SCHEMA_VERSION,
@@ -365,81 +374,94 @@ async fn run_daemon(
         jj_lib_version: "0.43.0".into(),
         jj_store_version: "jj-lib-0.43.0/git".into(),
     };
-    let durable: Arc<dyn Sink> = match (session_dir.as_ref(), s3_bucket) {
-        (Some(session_dir), None) => Arc::new(
-            DirectorySessionSink::create(
-                &events,
-                session_dir,
-                session_id.clone(),
-                format.clone(),
-                max_spool_bytes,
+
+    let durable: Arc<dyn Sink> = match (checkpoint_backend, event_backend) {
+        (Some(CheckpointBackend::Local), Some(EventBackend::Local)) => {
+            let session_dir = options.session_dir.as_ref().expect("validated above");
+            Arc::new(
+                DirectorySessionSink::create(
+                    &options.events,
+                    session_dir,
+                    options.session_id.clone(),
+                    format.clone(),
+                    options.max_spool_bytes,
+                )
+                .await?,
             )
-            .await?,
-        ),
-        (None, Some(bucket)) => {
-            let config = S3SinkConfig {
-                bucket,
-                prefix: s3_prefix,
-                region: s3_region,
-                endpoint: s3_endpoint,
-                spool_path: events.clone(),
-                max_spool_bytes,
-                session_id: session_id.clone(),
-                format: format.clone(),
-            };
-            match database_url {
-                Some(database_url) => Arc::new(
-                    PostgresSessionSink::create(PostgresSessionSinkConfig {
-                        s3: config,
-                        database: PostgresIndexConfig {
-                            database_url,
-                            max_connections: database_max_connections,
-                            sessions_table: database_sessions_table,
-                            events_table: database_events_table,
-                            objects_table: database_objects_table,
-                            schema_mode: database_schema_mode.into(),
-                        },
-                        inline_object_max_bytes: database_inline_object_max_bytes,
-                    })
-                    .await?,
-                ),
-                None => Arc::new(S3SessionSink::create(config).await?),
-            }
         }
-        (None, None) => Arc::new(NdjsonSink::create(&events).await?),
-        (Some(_), Some(_)) => unreachable!("validated above"),
+        (Some(CheckpointBackend::Git), Some(EventBackend::Http)) => {
+            let journal = Arc::new(
+                NdjsonSink::create_for_session(
+                    &options.events,
+                    options.max_spool_bytes,
+                    Some(options.session_id.clone()),
+                    Some(SCHEMA_VERSION),
+                )
+                .await?,
+            );
+            let git_cursor = options.events.with_extension("git-cursor.json");
+            let http_cursor = options.events.with_extension("http-cursor.json");
+            let checkpoint = Arc::new(GitCheckpointSink::create(GitCheckpointConfig {
+                remote_url: options.git_remote_url.expect("validated above"),
+                authorization: std::env::var("RRJJ_GIT_AUTHORIZATION").ok(),
+                ref_prefix: options.git_ref_prefix,
+                session_id: options.session_id.clone(),
+                cursor_path: git_cursor,
+            })?);
+            let events = Arc::new(HttpEventSink::create(HttpEventConfig {
+                url: options.event_http_url.expect("validated above"),
+                authorization: std::env::var("RRJJ_EVENT_HTTP_AUTHORIZATION").ok(),
+                max_events_per_batch: options.event_max_batch_events,
+                max_bytes_per_batch: options.event_max_batch_bytes,
+                cursor_path: http_cursor,
+                max_retries: 8,
+            })?);
+            Arc::new(DurableSessionSink::new(
+                journal,
+                checkpoint,
+                events,
+                options.session_id.clone(),
+            ))
+        }
+        (None, Some(EventBackend::None)) => Arc::new(NdjsonSink::create(&options.events).await?),
+        _ => unreachable!("validated above"),
     };
+
     let (broadcast, live_events) = BroadcastSink::new(durable, 1_024);
     let sink: Arc<dyn Sink> = Arc::new(broadcast);
-    let mut excluded_paths = vec![shadow.clone(), events.clone(), socket.clone()];
-    if let Some(session_dir) = session_dir {
-        excluded_paths.push(session_dir);
+    let mut excluded_paths = vec![
+        options.shadow.clone(),
+        options.events.clone(),
+        options.socket.clone(),
+    ];
+    if let Some(session_dir) = &options.session_dir {
+        excluded_paths.push(session_dir.clone());
     }
     let mut ignore = vec![".git".into(), ".jj".into()]
         .into_iter()
-        .chain(ignore)
+        .chain(options.ignore)
         .collect::<Vec<_>>();
     ignore.sort();
     ignore.dedup();
     let coordinator = rrjj_core::start(
         Config {
-            session_id,
-            watched_root: root,
-            shadow_root: shadow,
+            session_id: options.session_id,
+            watched_root: options.root,
+            shadow_root: options.shadow,
             ignore,
             excluded_paths,
-            max_changes_per_event: max_changes,
-            quiescence: Duration::from_millis(quiescence_ms),
-            max_delay: Duration::from_millis(max_delay_ms),
+            max_changes_per_event: options.max_changes,
+            quiescence: Duration::from_millis(options.quiescence_ms),
+            max_delay: Duration::from_millis(options.max_delay_ms),
         },
         sink,
     )
     .await?;
-    let listener = UnixListener::bind(&socket)
-        .with_context(|| format!("bind control socket {}", socket.display()))?;
-    tokio::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))
+    let listener = UnixListener::bind(&options.socket)
+        .with_context(|| format!("bind control socket {}", options.socket.display()))?;
+    tokio::fs::set_permissions(&options.socket, std::fs::Permissions::from_mode(0o600))
         .await
-        .with_context(|| format!("secure control socket {}", socket.display()))?;
+        .with_context(|| format!("secure control socket {}", options.socket.display()))?;
     let http_task = if let Some((address, listener)) = http_listener {
         let app = http_router(
             HttpState {
@@ -447,7 +469,7 @@ async fn run_daemon(
                 events: live_events,
             },
             address,
-            cors_origin,
+            options.cors_origin,
         )?;
         Some(tokio::spawn(
             async move { axum::serve(listener, app).await },
@@ -460,7 +482,7 @@ async fn run_daemon(
         task.abort();
     }
     let shutdown = coordinator.shutdown("terminated".into()).await;
-    let _ = tokio::fs::remove_file(&socket).await;
+    let _ = tokio::fs::remove_file(&options.socket).await;
     result.and(shutdown)
 }
 
