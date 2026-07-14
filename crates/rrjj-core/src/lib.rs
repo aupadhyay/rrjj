@@ -570,6 +570,7 @@ impl Coordinator {
     async fn flush_durable(&mut self) -> Result<()> {
         let op = self.recorder.op_id();
         let through_seq = self.seq;
+        let checkpoint = self.recorder.commit_id();
         self.emit(EventBody::Flush(Flush {
             op: op.clone(),
             through_seq,
@@ -580,6 +581,7 @@ impl Coordinator {
                 shadow_root: self.config.shadow_root.clone(),
                 last_seq: self.seq - 1,
                 last_op: op,
+                checkpoint,
             })
             .await?;
         Ok(())
@@ -836,6 +838,12 @@ impl JjRecorder {
 
     fn op_id(&self) -> String {
         format!("op:{}", self.repo.op_id().hex())
+    }
+
+    fn commit_id(&self) -> Option<String> {
+        self.previous_commit
+            .as_ref()
+            .map(|commit| format!("c:{}", commit.hex()))
     }
 
     async fn capture(&mut self, full_scan: bool, max_changes: usize) -> Result<Snapshot> {
